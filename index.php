@@ -1,0 +1,296 @@
+<?php
+require_once 'config.php';
+
+// Obtener los últimos juegos añadidos (excluyendo futuros lanzamientos)
+$stmt = $pdo->prepare("SELECT * FROM videojuegos WHERE es_futuro_lanzamiento = FALSE ORDER BY created_at DESC LIMIT 6");
+$stmt->execute();
+$ultimosJuegos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Obtener un juego de futuro lanzamiento
+$stmt = $pdo->prepare("SELECT * FROM videojuegos WHERE es_futuro_lanzamiento = TRUE ORDER BY fecha_lanzamiento ASC LIMIT 1");
+$stmt->execute();
+$futuroJuego = $stmt->fetch(PDO::FETCH_ASSOC);
+
+// Procesar búsqueda
+$resultadosBusqueda = [];
+if (isset($_GET['buscar']) && !empty($_GET['buscar'])) {
+    $termino = '%' . sanitize($_GET['buscar']) . '%';
+    $stmt = $pdo->prepare("SELECT * FROM videojuegos WHERE titulo LIKE ? OR descripcion LIKE ? ORDER BY created_at DESC");
+    $stmt->execute([$termino, $termino]);
+    $resultadosBusqueda = $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+?>
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo SITE_NAME; ?> - Tu guía definitiva de videojuegos</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="styles.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Banner Principal -->
+    <header class="hero-banner">
+        <div class="hero-overlay">
+            <div class="container text-center">
+                <h1 class="display-1 fw-bold text-white mb-4"><?php echo SITE_NAME; ?></h1>
+                <p class="lead text-white-50">Tu guía definitiva de videojuegos</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- Barra de Navegación -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="index.php">
+                <i class="fas fa-gamepad me-2"></i><?php echo SITE_NAME; ?>
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <!-- Buscador -->
+                <form class="d-flex me-auto ms-3" method="GET">
+                    <div class="input-group">
+                        <input class="form-control" type="search" name="buscar" placeholder="Buscar juegos..." 
+                               value="<?php echo isset($_GET['buscar']) ? htmlspecialchars($_GET['buscar']) : ''; ?>">
+                        <button class="btn btn-outline-light" type="submit">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </form>
+                
+                <!-- Menú de usuario -->
+                <ul class="navbar-nav">
+                    <?php if (isLoggedIn()): ?>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                                <i class="fas fa-user"></i> <?php echo sanitize($_SESSION['username']); ?>
+                            </a>
+                            <ul class="dropdown-menu">
+                                <?php if (isAdmin()): ?>
+                                    <li><a class="dropdown-item" href="admin.php"><i class="fas fa-cog"></i> Administrar</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                <?php endif; ?>
+                                <li><a class="dropdown-item" href="logout.php"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a></li>
+                            </ul>
+                        </li>
+                    <?php else: ?>
+                        <li class="nav-item">
+                            <a class="nav-link" href="login.php"><i class="fas fa-sign-in-alt"></i> Iniciar Sesión</a>
+                        </li>
+                    <?php endif; ?>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container my-5">
+        <!-- Resultados de búsqueda -->
+        <?php if (!empty($resultadosBusqueda)): ?>
+            <section class="mb-5">
+                <h2 class="mb-4">Resultados de búsqueda para "<?php echo htmlspecialchars($_GET['buscar']); ?>"</h2>
+                <div class="row">
+                    <?php foreach ($resultadosBusqueda as $juego): ?>
+                        <div class="col-md-4 mb-4">
+                            <div class="card game-card h-100">
+                                <img src="<?php echo $juego['imagen'] ? UPLOAD_PATH . $juego['imagen'] : 'https://via.placeholder.com/300x200?text=Sin+Imagen'; ?>" 
+                                     class="card-img-top" alt="<?php echo sanitize($juego['titulo']); ?>">
+                                <div class="card-body d-flex flex-column">
+                                    <h5 class="card-title"><?php echo sanitize($juego['titulo']); ?></h5>
+                                    <p class="card-text flex-grow-1"><?php echo sanitize(substr($juego['descripcion'], 0, 100)) . '...'; ?></p>
+                                    <div class="mt-auto">
+                                        <small class="text-muted">
+                                            <i class="fas fa-calendar"></i> <?php echo date('d/m/Y', strtotime($juego['fecha_lanzamiento'])); ?>
+                                        </small>
+                                        <br>
+                                        <small class="text-muted">
+                                            <i class="fas fa-gamepad"></i> <?php echo sanitize($juego['plataforma']); ?>
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </section>
+        <?php elseif (isset($_GET['buscar'])): ?>
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> No se encontraron resultados para "<?php echo htmlspecialchars($_GET['buscar']); ?>"
+            </div>
+        <?php endif; ?>
+
+        <!-- Últimos Juegos Añadidos -->
+        <?php if (empty($_GET['buscar'])): ?>
+            <section class="mb-5">
+                <h2 class="mb-4"><i class="fas fa-star text-warning"></i> Últimos Juegos Añadidos</h2>
+                <div class="row">
+                    <?php foreach ($ultimosJuegos as $juego): ?>
+                        <div class="col-lg-4 col-md-6 mb-4">
+                            <div class="card game-card h-100">
+                                <img src="<?php echo $juego['imagen'] ? UPLOAD_PATH . $juego['imagen'] : 'https://via.placeholder.com/300x200?text=Sin+Imagen'; ?>" 
+                                     class="card-img-top" alt="<?php echo sanitize($juego['titulo']); ?>">
+                                <div class="card-body d-flex flex-column">
+                                    <h5 class="card-title"><?php echo sanitize($juego['titulo']); ?></h5>
+                                    <p class="card-text flex-grow-1"><?php echo sanitize(substr($juego['descripcion'], 0, 100)) . '...'; ?></p>
+                                    <div class="mt-auto">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span class="badge bg-primary"><?php echo sanitize($juego['genero']); ?></span>
+                                            <?php if ($juego['precio']): ?>
+                                                <span class="fw-bold text-success">€<?php echo number_format($juego['precio'], 2); ?></span>
+                                            <?php endif; ?>
+                                        </div>
+                                        <small class="text-muted">
+                                            <i class="fas fa-calendar"></i> <?php echo date('d/m/Y', strtotime($juego['fecha_lanzamiento'])); ?>
+                                        </small>
+                                        <br>
+                                        <small class="text-muted">
+                                            <i class="fas fa-gamepad"></i> <?php echo sanitize($juego['plataforma']); ?>
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </section>
+
+            <!-- Futuro Lanzamiento -->
+            <?php if ($futuroJuego): ?>
+                <section class="mb-5">
+                    <h2 class="mb-4"><i class="fas fa-rocket text-info"></i> Próximo Lanzamiento</h2>
+                    <div class="card future-release-card">
+                        <div class="row g-0">
+                            <div class="col-md-4">
+                                <img src="<?php echo $futuroJuego['imagen'] ? UPLOAD_PATH . $futuroJuego['imagen'] : 'https://via.placeholder.com/400x300?text=Próximamente'; ?>" 
+                                     class="img-fluid h-100 object-cover" alt="<?php echo sanitize($futuroJuego['titulo']); ?>">
+                            </div>
+                            <div class="col-md-8">
+                                <div class="card-body h-100 d-flex flex-column">
+                                    <h3 class="card-title"><?php echo sanitize($futuroJuego['titulo']); ?></h3>
+                                    <p class="card-text flex-grow-1"><?php echo sanitize($futuroJuego['descripcion']); ?></p>
+                                    
+                                    <!-- Contador regresivo -->
+                                    <div class="countdown-container mb-3">
+                                        <h5>Lanzamiento en:</h5>
+                                        <div id="countdown" class="countdown-display" 
+                                             data-target="<?php echo date('c', strtotime($futuroJuego['fecha_lanzamiento'])); ?>">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="game-details">
+                                        <p class="mb-2"><strong>Desarrollador:</strong> <?php echo sanitize($futuroJuego['desarrollador']); ?></p>
+                                        <p class="mb-2"><strong>Plataforma:</strong> <?php echo sanitize($futuroJuego['plataforma']); ?></p>
+                                        <p class="mb-2"><strong>Género:</strong> <?php echo sanitize($futuroJuego['genero']); ?></p>
+                                        <?php if ($futuroJuego['precio']): ?>
+                                            <p class="mb-0"><strong>Precio estimado:</strong> <span class="text-success">€<?php echo number_format($futuroJuego['precio'], 2); ?></span></p>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            <?php endif; ?>
+        <?php endif; ?>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-light py-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <h5><?php echo SITE_NAME; ?></h5>
+                    <p class="text-muted">Tu destino definitivo para descubrir, explorar y seguir los mejores videojuegos.</p>
+                </div>
+                <div class="col-md-6 mb-4">
+                    <h5>Síguenos</h5>
+                    <div class="social-links">
+                        <a href="#" class="text-light me-3"><i class="fab fa-twitter fa-lg"></i></a>
+                        <a href="#" class="text-light me-3"><i class="fab fa-facebook fa-lg"></i></a>
+                        <a href="#" class="text-light me-3"><i class="fab fa-instagram fa-lg"></i></a>
+                        <a href="#" class="text-light me-3"><i class="fab fa-youtube fa-lg"></i></a>
+                        <a href="#" class="text-light me-3"><i class="fab fa-discord fa-lg"></i></a>
+                    </div>
+                </div>
+            </div>
+            <hr class="my-4">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <p class="mb-0">&copy; 2024 <?php echo SITE_NAME; ?>. Todos los derechos reservados.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <a href="#" class="text-muted me-3">Contacto</a>
+                    <a href="#" class="text-muted me-3">Política de Privacidad</a>
+                    <a href="#" class="text-muted">Términos de Uso</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Contador regresivo
+        function updateCountdown() {
+            const countdownElement = document.getElementById('countdown');
+            if (!countdownElement) return;
+            
+            const targetDate = new Date(countdownElement.dataset.target);
+            const now = new Date();
+            const difference = targetDate - now;
+            
+            if (difference > 0) {
+                const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+                
+                countdownElement.innerHTML = `
+                    <div class="countdown-item">
+                        <span class="countdown-number">${days}</span>
+                        <span class="countdown-label">días</span>
+                    </div>
+                    <div class="countdown-item">
+                        <span class="countdown-number">${hours}</span>
+                        <span class="countdown-label">horas</span>
+                    </div>
+                    <div class="countdown-item">
+                        <span class="countdown-number">${minutes}</span>
+                        <span class="countdown-label">min</span>
+                    </div>
+                    <div class="countdown-item">
+                        <span class="countdown-number">${seconds}</span>
+                        <span class="countdown-label">seg</span>
+                    </div>
+                `;
+            } else {
+                countdownElement.innerHTML = '<span class="text-success fw-bold">¡Ya disponible!</span>';
+            }
+        }
+        
+        // Actualizar contador cada segundo
+        if (document.getElementById('countdown')) {
+            updateCountdown();
+            setInterval(updateCountdown, 1000);
+        }
+        
+        // Efectos de hover en las tarjetas
+        document.querySelectorAll('.game-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-10px)';
+                this.style.boxShadow = '0 10px 25px rgba(0,0,0,0.2)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0)';
+                this.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+            });
+        });
+    </script>
+</body>
+</html>
