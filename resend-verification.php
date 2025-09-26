@@ -50,10 +50,21 @@ function sendVerificationEmailLocal($email, $username, $token)
     // Log para pruebas locales
     $log_entry = date('Y-m-d H:i:s') . " - Resend verification email to: $email\n";
     $log_entry .= "Verification Link: $verification_link\n";
+    $log_entry .= "Username: $username\n";
     $log_entry .= "---\n\n";
     file_put_contents('email_log.txt', $log_entry, FILE_APPEND);
 
-    return mail($email, $subject, $message, $headers);
+    // Para desarrollo local: simular envío exitoso
+    // Verificar si estamos en localhost (desarrollo)
+    $isLocalhost = (strpos(SITE_URL, 'localhost') !== false || strpos(SITE_URL, '127.0.0.1') !== false);
+    
+    if ($isLocalhost) {
+        // En desarrollo local, simular envío exitoso
+        return true;
+    } else {
+        // En producción, intentar enviar con mail()
+        return mail($email, $subject, $message, $headers);
+    }
 }
 
 // Manejo de entrada: permitir GET (enlaces existentes) o POST desde formulario

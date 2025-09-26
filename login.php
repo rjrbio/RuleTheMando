@@ -19,19 +19,19 @@ if (isLoggedIn()) {
 
 // Procesar login
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
-    $email = sanitize($_POST['email']);
+    $username = sanitize($_POST['username']);
     $password = $_POST['password'];
 
-    if (empty($email) || empty($password)) {
+    if (empty($username) || empty($password)) {
         $error = 'Por favor, completa todos los campos.';
     } else {
-        $stmt = $pdo->prepare("SELECT * FROM usuarios WHERE email = ?");
-        $stmt->execute([$email]);
+        $stmt = $pdo->prepare("SELECT * FROM usuarios WHERE username = ?");
+        $stmt->execute([$username]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($user && password_verify($password, $user['password'])) {
             if (!$user['email_verified']) {
-                $error = 'Debes verificar tu email antes de iniciar sesión. <a href="resend-verification.php?email=' . urlencode($email) . '">Reenviar email de verificación</a>';
+                $error = 'Debes verificar tu email antes de iniciar sesión. <a href="resend-verification.php?email=' . urlencode($user['email']) . '">Reenviar email de verificación</a>';
             } else {
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['username'] = $user['username'];
@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
                 redirect('index.php');
             }
         } else {
-            $error = 'Email o contraseña incorrectos.';
+            $error = 'Nombre de usuario o contraseña incorrectos.';
         }
     }
 }
@@ -56,6 +56,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
     // Validaciones
     if (empty($username) || empty($email) || empty($password) || empty($confirm_password)) {
         $error = 'Por favor, completa todos los campos.';
+    } elseif (strlen($username) < 3) {
+        $error = 'El nombre de usuario debe tener al menos 3 caracteres.';
+    } elseif (strlen($username) > 50) {
+        $error = 'El nombre de usuario no puede tener más de 50 caracteres.';
+    } elseif (!preg_match('/^[a-zA-Z0-9_-]+$/', $username)) {
+        $error = 'El nombre de usuario solo puede contener letras, números, guiones y guiones bajos.';
     } elseif ($password !== $confirm_password) {
         $error = 'Las contraseñas no coinciden.';
     } elseif (strlen($password) < 6) {
@@ -64,28 +70,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
         $error = 'El email no es válido.';
     } else {
         // Verificar si el usuario ya existe
-        $stmt = $pdo->prepare("SELECT id FROM usuarios WHERE username = ? OR email = ?");
-        $stmt->execute([$username, $email]);
-
+        $stmt = $pdo->prepare("SELECT id FROM usuarios WHERE username = ?");
+        $stmt->execute([$username]);
+        
         if ($stmt->fetch()) {
-            $error = 'El nombre de usuario o email ya está en uso.';
+            $error = 'El nombre de usuario ya está en uso.';
         } else {
-            // Crear nuevo usuario
-            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-            $verification_token = bin2hex(random_bytes(32));
-            $verification_expires = date('Y-m-d H:i:s', strtotime('+24 hours'));
-
-            $stmt = $pdo->prepare("INSERT INTO usuarios (username, email, password, verification_token, verification_expires) VALUES (?, ?, ?, ?, ?)");
-
-            if ($stmt->execute([$username, $email, $hashed_password, $verification_token, $verification_expires])) {
-                // Enviar email de verificación
-                if (sendVerificationEmail($email, $username, $verification_token)) {
-                    $success = 'Registro exitoso. Se ha enviado un email de verificación a tu dirección de correo.';
-                } else {
-                    $error = 'Usuario creado, pero hubo un error al enviar el email de verificación. <a href="resend-verification.php?email=' . urlencode($email) . '">Reenviar</a>';
-                }
+            // Verificar si el email ya existe
+            $stmt = $pdo->prepare("SELECT id FROM usuarios WHERE email = ?");
+            $stmt->execute([$email]);
+            
+            if ($stmt->fetch()) {
+                $error = 'El email ya está en uso.';
             } else {
-                $error = 'Error al crear el usuario. Inténtalo de nuevo.';
+                // Crear nuevo usuario
+                $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+                $verification_token = bin2hex(random_bytes(32));
+                $verification_expires = date('Y-m-d H:i:s', strtotime('+24 hours'));
+
+                $stmt = $pdo->prepare("INSERT INTO usuarios (username, email, password, verification_token, verification_expires) VALUES (?, ?, ?, ?, ?)");
+
+                if ($stmt->execute([$username, $email, $hashed_password, $verification_token, $verification_expires])) {
+                    // Enviar email de verificación
+                    if (sendVerificationEmail($email, $username, $verification_token)) {
+                        $success = 'Registro exitoso. Se ha enviado un email de verificación a tu dirección de correo.';
+                    } else {
+                        $error = 'Usuario creado, pero hubo un error al enviar el email de verificación. <a href="resend-verification.php?email=' . urlencode($email) . '">Reenviar</a>';
+                    }
+                } else {
+                    $error = 'Error al crear el usuario. Inténtalo de nuevo.';
+                }
             }
         }
     }
@@ -146,10 +160,24 @@ function sendVerificationEmail($email, $username, $token)
     $log_entry = date('Y-m-d H:i:s') . " - Email to: $email\n";
     $log_entry .= "Subject: $subject\n";
     $log_entry .= "Verification Link: $verification_link\n";
+    $log_entry .= "Username: $username\n";
     $log_entry .= "---\n\n";
     file_put_contents('email_log.txt', $log_entry, FILE_APPEND);
 
-    return mail($email, $subject, $message, $headers);
+    // Para desarrollo local: simular envío exitoso
+    // En producción, reemplazar con: return mail($email, $subject, $message, $headers);
+    // o mejor aún, usar PHPMailer con SMTP
+    
+    // Verificar si estamos en localhost (desarrollo)
+    $isLocalhost = (strpos(SITE_URL, 'localhost') !== false || strpos(SITE_URL, '127.0.0.1') !== false);
+    
+    if ($isLocalhost) {
+        // En desarrollo local, simular envío exitoso
+        return true;
+    } else {
+        // En producción, intentar enviar con mail()
+        return mail($email, $subject, $message, $headers);
+    }
 }
 ?>
 
@@ -293,11 +321,11 @@ function sendVerificationEmail($email, $username, $token)
                     <div class="tab-pane fade show active" id="login" role="tabpanel">
                         <form method="POST" class="needs-validation" novalidate>
                             <div class="form-floating mb-3">
-                                <input type="email" class="form-control" id="email" name="email" placeholder="Email"
+                                <input type="text" class="form-control" id="username" name="username" placeholder="Nombre de usuario"
                                     required>
-                                <label for="email"><i class="fas fa-envelope me-2"></i>Email</label>
+                                <label for="username"><i class="fas fa-user me-2"></i>Nombre de usuario</label>
                                 <div class="invalid-feedback">
-                                    Por favor, ingresa un email válido.
+                                    Por favor, ingresa tu nombre de usuario.
                                 </div>
                             </div>
 
@@ -333,11 +361,12 @@ function sendVerificationEmail($email, $username, $token)
                                 <div class="col-md-6">
                                     <div class="form-floating mb-3">
                                         <input type="text" class="form-control" id="reg_username" name="reg_username"
-                                            placeholder="Usuario" required>
-                                        <label for="reg_username"><i class="fas fa-user me-2"></i>Usuario</label>
+                                            placeholder="Nombre de usuario" required maxlength="50" pattern="[a-zA-Z0-9_-]+">
+                                        <label for="reg_username"><i class="fas fa-user me-2"></i>Nombre de usuario</label>
                                         <div class="invalid-feedback">
-                                            Por favor, elige un nombre de usuario.
+                                            3-50 caracteres. Solo letras, números, - y _
                                         </div>
+                                        <small class="text-muted">Será usado para hacer login</small>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
@@ -348,6 +377,7 @@ function sendVerificationEmail($email, $username, $token)
                                         <div class="invalid-feedback">
                                             Por favor, ingresa un email válido.
                                         </div>
+                                        <small class="text-muted">Para verificación y notificaciones</small>
                                     </div>
                                 </div>
                             </div>
@@ -423,6 +453,22 @@ function sendVerificationEmail($email, $username, $token)
 
             if (password !== confirmPassword) {
                 this.setCustomValidity('Las contraseñas no coinciden');
+            } else {
+                this.setCustomValidity('');
+            }
+        });
+
+        // Validar username en tiempo real
+        document.getElementById('reg_username').addEventListener('input', function () {
+            const username = this.value;
+            const pattern = /^[a-zA-Z0-9_-]+$/;
+            
+            if (username.length < 3 && username.length > 0) {
+                this.setCustomValidity('El nombre de usuario debe tener al menos 3 caracteres');
+            } else if (username.length > 50) {
+                this.setCustomValidity('El nombre de usuario no puede tener más de 50 caracteres');
+            } else if (username.length > 0 && !pattern.test(username)) {
+                this.setCustomValidity('Solo se permiten letras, números, guiones (-) y guiones bajos (_)');
             } else {
                 this.setCustomValidity('');
             }
