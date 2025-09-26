@@ -1,6 +1,5 @@
 -- Crear base de datos
-CREATE DATABASE rule_the_mando CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE rule_the_mando;
+USE rjrbio_rule;
 
 -- Tabla de usuarios
 CREATE TABLE usuarios (
@@ -9,6 +8,32 @@ CREATE TABLE usuarios (
     password VARCHAR(255) NOT NULL,
     role ENUM('admin', 'user') DEFAULT 'user',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Actualizar la tabla de usuarios para incluir verificación por email
+ALTER TABLE usuarios 
+ADD COLUMN email VARCHAR(255) UNIQUE,
+ADD COLUMN email_verified BOOLEAN DEFAULT FALSE,
+ADD COLUMN verification_token VARCHAR(255),
+ADD COLUMN verification_expires TIMESTAMP NULL,
+ADD COLUMN reset_token VARCHAR(255),
+ADD COLUMN reset_expires TIMESTAMP NULL;
+
+-- Actualizar el usuario admin para incluir email
+UPDATE usuarios SET email = 'admin@rulethemando.com', email_verified = TRUE WHERE username = 'admin';
+
+-- Crear tabla para tokens de verificación (opcional, para mayor control)
+CREATE TABLE verification_tokens (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    token VARCHAR(255) NOT NULL,
+    type ENUM('email_verification', 'password_reset') NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    used BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+    INDEX idx_token (token),
+    INDEX idx_user_type (user_id, type)
 );
 
 -- Tabla de videojuegos

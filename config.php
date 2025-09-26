@@ -1,9 +1,9 @@
 <?php
 // Configuración de la base de datos
-define('DB_HOST', 'localhost');
-define('DB_USER', 'root'); // Cambia por tu usuario de MySQL
-define('DB_PASS', ''); // Cambia por tu contraseña de MySQL
-define('DB_NAME', 'rule_the_mando');
+define('DB_HOST', 'mysql-rjrbio.alwaysdata.net');
+define('DB_USER', 'rjrbio'); // Cambia por tu usuario de MySQL
+define('DB_PASS', '***REMOVED***'); // Cambia por tu contraseña de MySQL
+define('DB_NAME', 'rjrbio_rule');
 
 // Configuración de la aplicación
 define('SITE_NAME', 'Rule the Mando');

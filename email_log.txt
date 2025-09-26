@@ -1,0 +1,10 @@
+2025-09-26 16:15:24 - Email to: joseftf1991@gmail.com
+Subject: Verifica tu cuenta en Rule the Mando
+Verification Link: http://localhost/rule_the_mando/verify-email.php?token=cf28bb62f9f9699368e4d1da95a453e3bfc8c98d112f38e674d6cb320a75a144
+---
+
+2025-09-26 16:37:39 - Email to: joseftf1991@gmail.com
+Subject: Verifica tu cuenta en Rule the Mando
+Verification Link: http://localhost/rule_the_mando/verify-email.php?token=1f2a48b9e24e76ffe628d52a418b140ba5058a8a60b6d4a00b60f6f6e659185f
+---
+
