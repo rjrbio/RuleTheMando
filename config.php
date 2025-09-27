@@ -42,4 +42,29 @@ function redirect($url)
     header("Location: $url");
     exit();
 }
+
+// Helpers SEO y esquema
+function slugify($text)
+{
+    $text = trim($text);
+    if ($text === '') return '';
+    // transliteración básica
+    $text = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text);
+    $text = strtolower($text);
+    $text = preg_replace('/[^a-z0-9\s-]/', '', $text);
+    $text = preg_replace('/[\s-]+/', '-', $text);
+    $text = trim($text, '-');
+    return $text;
+}
+
+function hasColumn(PDO $pdo, $table, $column)
+{
+    try {
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?');
+        $stmt->execute([DB_NAME, $table, $column]);
+        return $stmt->fetchColumn() > 0;
+    } catch (Exception $e) {
+        return false;
+    }
+}
 ?>

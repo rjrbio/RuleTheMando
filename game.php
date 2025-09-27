@@ -1,0 +1,174 @@
+<?php
+require_once 'config.php';
+
+// Resolver por id o slug
+$id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+$slug = isset($_GET['slug']) ? trim($_GET['slug']) : '';
+
+if ($slug !== '') {
+  $stmt = $pdo->prepare('SELECT * FROM videojuegos WHERE slug = ?');
+  $stmt->execute([$slug]);
+  $juego = $stmt->fetch(PDO::FETCH_ASSOC);
+} else {
+  if ($id <= 0) {
+    http_response_code(400);
+    echo 'Solicitud inválida';
+    exit;
+  }
+  $stmt = $pdo->prepare('SELECT * FROM videojuegos WHERE id = ?');
+  $stmt->execute([$id]);
+  $juego = $stmt->fetch(PDO::FETCH_ASSOC);
+}
+
+if (!$juego) {
+    http_response_code(404);
+    echo 'Juego no encontrado';
+    exit;
+}
+
+// Juegos relacionados (mismo género o plataforma, excluyendo el actual)
+$relStmt = $pdo->prepare('SELECT id, titulo, imagen, genero, plataforma FROM videojuegos WHERE id <> ? AND (genero = ? OR plataforma = ?) ORDER BY created_at DESC LIMIT 6');
+$relStmt->execute([$id, $juego['genero'], $juego['plataforma']]);
+$relacionados = $relStmt->fetchAll(PDO::FETCH_ASSOC);
+?>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><?php echo sanitize($juego['titulo']); ?> - <?php echo SITE_NAME; ?></title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link href="styles.css" rel="stylesheet">
+  <meta name="description" content="Detalles de <?php echo htmlspecialchars($juego['titulo']); ?>: fecha, plataforma, género, desarrollador y más.">
+  <?php
+    $hasSlug = isset($juego['slug']) && !empty($juego['slug']);
+    $canonical = SITE_URL . '/game.php?' . ($hasSlug ? ('slug=' . urlencode($juego['slug'])) : ('id=' . (int)$juego['id']));
+  ?>
+  <link rel="canonical" href="<?php echo $canonical; ?>">
+  <script type="application/ld+json">
+  <?php echo json_encode([
+    '@context' => 'https://schema.org',
+    '@type' => 'VideoGame',
+    'name' => $juego['titulo'],
+    'author' => $juego['desarrollador'] ?: null,
+    'genre' => $juego['genero'] ?: null,
+    'gamePlatform' => $juego['plataforma'] ?: null,
+    'image' => $juego['imagen'] ? (SITE_URL . '/' . UPLOAD_PATH . $juego['imagen']) : null,
+    'datePublished' => $juego['fecha_lanzamiento'] ?: null,
+    'offers' => $juego['precio'] ? [
+      '@type' => 'Offer',
+      'price' => number_format((float)$juego['precio'], 2),
+      'priceCurrency' => 'EUR'
+    ] : null
+  ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); ?>
+  </script>
+</head>
+<body class="bg-light">
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+      <a class="navbar-brand fw-bold" href="index.php"><i class="fas fa-gamepad me-2"></i><?php echo SITE_NAME; ?></a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item"><a class="nav-link" href="games.php"><i class="fas fa-list"></i> Juegos</a></li>
+        </ul>
+        <ul class="navbar-nav">
+          <?php if (isAdmin()): ?>
+            <li class="nav-item"><a class="nav-link" href="admin.php?edit=<?php echo (int)$juego['id']; ?>#manage-games"><i class="fas fa-edit"></i> Editar</a></li>
+          <?php endif; ?>
+          <?php if (isLoggedIn()): ?>
+            <li class="nav-item"><a class="nav-link" href="logout.php"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a></li>
+          <?php else: ?>
+            <li class="nav-item"><a class="nav-link" href="login.php"><i class="fas fa-sign-in-alt"></i> Iniciar Sesión</a></li>
+          <?php endif; ?>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <header class="game-hero py-4">
+    <div class="container">
+      <div class="row g-4 align-items-center">
+        <div class="col-md-5">
+          <img class="game-hero-img" src="<?php echo $juego['imagen'] ? UPLOAD_PATH . $juego['imagen'] : 'https://via.placeholder.com/800x450?text=Sin+Imagen'; ?>" alt="<?php echo sanitize($juego['titulo']); ?>">
+        </div>
+        <div class="col-md-7">
+          <h1 class="mb-2"><?php echo sanitize($juego['titulo']); ?></h1>
+          <p class="lead mb-3"><?php echo htmlspecialchars($juego['descripcion']); ?></p>
+          <div>
+            <?php if ($juego['es_futuro_lanzamiento']): ?>
+              <span class="badge bg-warning text-dark">Próximamente</span>
+            <?php else: ?>
+              <span class="badge bg-success">Disponible</span>
+            <?php endif; ?>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container my-4">
+    <div class="row g-4">
+      <div class="col-lg-8">
+        <div class="card mb-4"><div class="card-body">
+          <h5 class="card-title">Descripción</h5>
+          <p style="white-space: pre-wrap;" class="mb-0"><?php echo nl2br(htmlspecialchars($juego['descripcion'])); ?></p>
+        </div></div>
+
+        <?php if (!empty($relacionados)): ?>
+          <div class="card"><div class="card-body">
+            <h5 class="card-title">Relacionados</h5>
+            <div class="row g-3">
+              <?php foreach ($relacionados as $r): ?>
+                <div class="col-6 col-md-4">
+                  <?php $slugR = isset($r['slug']) ? $r['slug'] : ''; ?>
+                  <a href="game.php?<?php echo $slugR ? ('slug=' . urlencode($slugR)) : ('id=' . (int)$r['id']); ?>" class="text-decoration-none text-dark">
+                    <div class="card card-related">
+                      <img src="<?php echo $r['imagen'] ? UPLOAD_PATH . $r['imagen'] : 'https://via.placeholder.com/400x225?text=Sin+Imagen'; ?>" alt="<?php echo sanitize($r['titulo']); ?>">
+                      <div class="card-body p-2">
+                        <div class="fw-semibold small mb-1"><?php echo sanitize($r['titulo']); ?></div>
+                        <div class="text-muted small"><?php echo sanitize($r['genero'] ?: $r['plataforma']); ?></div>
+                      </div>
+                    </div>
+                  </a>
+                </div>
+              <?php endforeach; ?>
+            </div>
+          </div></div>
+        <?php endif; ?>
+      </div>
+      <div class="col-lg-4">
+        <div class="card"><div class="card-body">
+          <h5 class="card-title">Detalles</h5>
+          <ul class="list-unstyled meta">
+            <li><strong>Fecha:</strong> <?php echo $juego['fecha_lanzamiento'] ? date('d/m/Y', strtotime($juego['fecha_lanzamiento'])) : '-'; ?></li>
+            <li><strong>Plataforma:</strong> <?php echo sanitize($juego['plataforma'] ?: '-'); ?></li>
+            <li><strong>Género:</strong> <?php echo sanitize($juego['genero'] ?: '-'); ?></li>
+            <li><strong>Desarrollador:</strong> <?php echo sanitize($juego['desarrollador'] ?: '-'); ?></li>
+            <li><strong>Precio:</strong> <?php echo $juego['precio'] ? '€' . number_format($juego['precio'], 2) : '-'; ?></li>
+            <li><strong>Actualizado:</strong> <?php echo date('d/m/Y H:i', strtotime($juego['updated_at'])); ?></li>
+          </ul>
+          <div class="d-grid gap-2">
+            <a class="btn btn-outline-secondary" href="games.php"><i class="fas fa-arrow-left me-1"></i> Volver al listado</a>
+            <?php if (isAdmin()): ?>
+              <a class="btn btn-primary" href="admin.php?edit=<?php echo (int)$juego['id']; ?>#manage-games"><i class="fas fa-edit me-1"></i> Editar</a>
+            <?php endif; ?>
+          </div>
+        </div></div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="bg-dark text-light py-4">
+    <div class="container d-flex justify-content-between">
+      <span>&copy; <?php echo date('Y'); ?> <?php echo SITE_NAME; ?></span>
+      <a href="index.php" class="text-muted">Inicio</a>
+    </div>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

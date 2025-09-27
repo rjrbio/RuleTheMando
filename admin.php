@@ -10,6 +10,13 @@ if (!isLoggedIn() || !isAdmin()) {
 $message = '';
 $success = false;
 
+// Cargar mensajes flash (si existen)
+if (!empty($_SESSION['flash_message'])) {
+    $message = $_SESSION['flash_message'];
+    $success = !empty($_SESSION['flash_success']);
+    unset($_SESSION['flash_message'], $_SESSION['flash_success']);
+}
+
 // Crear directorio de uploads si no existe
 if (!file_exists(UPLOAD_PATH)) {
     mkdir(UPLOAD_PATH, 0777, true);
@@ -47,11 +54,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_game'])) {
     }
 
     if (empty($message)) {
-        $stmt = $pdo->prepare("INSERT INTO videojuegos (titulo, descripcion, fecha_lanzamiento, plataforma, genero, desarrollador, imagen, precio, es_futuro_lanzamiento) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $hasSlug = function_exists('hasColumn') ? hasColumn($pdo, 'videojuegos', 'slug') : false;
+        $slug = $hasSlug ? slugify($titulo) : null;
+        if ($hasSlug) {
+            // evitar colisiones de slug
+            $base = $slug; $i = 1;
+            while (true) {
+                $check = $pdo->prepare('SELECT COUNT(*) FROM videojuegos WHERE slug = ?');
+                $check->execute([$slug]);
+                if ($check->fetchColumn() == 0) break;
+                $slug = $base . '-' . (++$i);
+            }
+        }
 
-        if ($stmt->execute([$titulo, $descripcion, $fecha_lanzamiento, $plataforma, $genero, $desarrollador, $imagen, $precio, $es_futuro_lanzamiento])) {
-            $success = true;
-            $message = 'Juego añadido exitosamente.';
+        if ($hasSlug) {
+            $stmt = $pdo->prepare("INSERT INTO videojuegos (titulo, slug, descripcion, fecha_lanzamiento, plataforma, genero, desarrollador, imagen, precio, es_futuro_lanzamiento) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $ok = $stmt->execute([$titulo, $slug, $descripcion, $fecha_lanzamiento, $plataforma, $genero, $desarrollador, $imagen, $precio, $es_futuro_lanzamiento]);
+        } else {
+            $stmt = $pdo->prepare("INSERT INTO videojuegos (titulo, descripcion, fecha_lanzamiento, plataforma, genero, desarrollador, imagen, precio, es_futuro_lanzamiento) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $ok = $stmt->execute([$titulo, $descripcion, $fecha_lanzamiento, $plataforma, $genero, $desarrollador, $imagen, $precio, $es_futuro_lanzamiento]);
+        }
+
+        if ($ok) {
+            $_SESSION['flash_message'] = 'Juego añadido exitosamente.';
+            $_SESSION['flash_success'] = true;
+            redirect('admin.php#manage-games');
         } else {
             $message = 'Error al añadir el juego.';
         }
@@ -77,6 +104,79 @@ if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
         $message = 'Juego eliminado exitosamente.';
     } else {
         $message = 'Error al eliminar el juego.';
+    }
+}
+
+// Procesar actualización de juego
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_game'])) {
+    $game_id = intval($_POST['game_id'] ?? 0);
+    if ($game_id > 0) {
+        $titulo = sanitize($_POST['titulo'] ?? '');
+        $descripcion = sanitize($_POST['descripcion'] ?? '');
+        $fecha_lanzamiento = $_POST['fecha_lanzamiento'] ?? null;
+        $plataforma = sanitize($_POST['plataforma'] ?? '');
+        $genero = sanitize($_POST['genero'] ?? '');
+        $desarrollador = sanitize($_POST['desarrollador'] ?? '');
+        $precio = isset($_POST['precio']) && $_POST['precio'] !== '' ? floatval($_POST['precio']) : null;
+        $es_futuro_lanzamiento = isset($_POST['es_futuro_lanzamiento']) ? 1 : 0;
+
+        // Obtener imagen actual
+        $stmt = $pdo->prepare('SELECT imagen FROM videojuegos WHERE id = ?');
+        $stmt->execute([$game_id]);
+        $current = $stmt->fetch(PDO::FETCH_ASSOC);
+        $imagen = $current ? ($current['imagen'] ?? '') : '';
+
+        // Manejar nueva imagen (opcional)
+        if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] === UPLOAD_ERR_OK) {
+            $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+            $filename = $_FILES['imagen']['name'];
+            $filetype = pathinfo($filename, PATHINFO_EXTENSION);
+            if (in_array(strtolower($filetype), $allowed)) {
+                $newName = uniqid() . '.' . $filetype;
+                $upload_path = UPLOAD_PATH . $newName;
+                if (move_uploaded_file($_FILES['imagen']['tmp_name'], $upload_path)) {
+                    if ($imagen && file_exists(UPLOAD_PATH . $imagen)) {
+                        @unlink(UPLOAD_PATH . $imagen);
+                    }
+                    $imagen = $newName;
+                } else {
+                    $message = 'No se pudo subir la nueva imagen.';
+                }
+            } else {
+                $message = 'Formato de imagen no válido. Usa JPG, PNG, GIF o WebP.';
+            }
+        }
+
+        if (empty($message)) {
+            $hasSlug = function_exists('hasColumn') ? hasColumn($pdo, 'videojuegos', 'slug') : false;
+            $slugSet = '';
+            $params = [$titulo, $descripcion, $fecha_lanzamiento, $plataforma, $genero, $desarrollador, $imagen, $precio, $es_futuro_lanzamiento, $game_id];
+            if ($hasSlug) {
+                $newSlug = slugify($titulo);
+                // resolver colisiones si el slug cambia
+                $check = $pdo->prepare('SELECT id FROM videojuegos WHERE slug = ? AND id <> ?');
+                $candidate = $newSlug; $i = 1;
+                while (true) {
+                    $check->execute([$candidate, $game_id]);
+                    if (!$check->fetch(PDO::FETCH_ASSOC)) break;
+                    $candidate = $newSlug . '-' . (++$i);
+                }
+                $slugSet = ', slug=?';
+                // mover slug a penúltima posición, antes de id
+                $params = [$titulo, $descripcion, $fecha_lanzamiento, $plataforma, $genero, $desarrollador, $imagen, $precio, $es_futuro_lanzamiento, $candidate, $game_id];
+            }
+            $stmt = $pdo->prepare('UPDATE videojuegos SET titulo=?, descripcion=?, fecha_lanzamiento=?, plataforma=?, genero=?, desarrollador=?, imagen=?, precio=?, es_futuro_lanzamiento=?' . $slugSet . ' WHERE id=?');
+            $ok = $stmt->execute($params);
+            if ($ok) {
+                // Mensaje flash y redirección (PRG) a gestionar juegos para evitar reabrir modal
+                $_SESSION['flash_message'] = 'Juego actualizado correctamente.';
+                $_SESSION['flash_success'] = true;
+                redirect('admin.php#manage-games');
+            } else {
+                $success = false;
+                $message = 'No se pudo actualizar el juego.';
+            }
+        }
     }
 }
 
@@ -407,7 +507,31 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                                             alt="<?php echo sanitize($juego['titulo']); ?>"
                                                             class="game-image">
                                                     </td>
-                                                    <td><strong><?php echo sanitize($juego['titulo']); ?></strong></td>
+                                                    <td>
+                                                        <div class="d-flex align-items-center justify-content-between">
+                                                            <strong><?php echo sanitize($juego['titulo']); ?></strong>
+                                                            <div class="btn-group btn-group-sm" role="group">
+                                                            <button type="button" class="btn btn-outline-primary" title="Modificar" data-bs-toggle="modal" data-bs-target="#editModal"
+                                                                data-id="<?php echo (int)$juego['id']; ?>"
+                                                                data-titulo="<?php echo htmlspecialchars($juego['titulo'], ENT_QUOTES); ?>"
+                                                                data-descripcion="<?php echo htmlspecialchars($juego['descripcion'], ENT_QUOTES); ?>"
+                                                                data-fecha="<?php echo htmlspecialchars($juego['fecha_lanzamiento']); ?>"
+                                                                data-plataforma="<?php echo htmlspecialchars($juego['plataforma'], ENT_QUOTES); ?>"
+                                                                data-genero="<?php echo htmlspecialchars($juego['genero'], ENT_QUOTES); ?>"
+                                                                data-desarrollador="<?php echo htmlspecialchars($juego['desarrollador'], ENT_QUOTES); ?>"
+                                                                data-precio="<?php echo htmlspecialchars($juego['precio']); ?>"
+                                                                data-futuro="<?php echo !empty($juego['es_futuro_lanzamiento']) ? '1' : '0'; ?>"
+                                                                data-imagen="<?php echo htmlspecialchars($juego['imagen']); ?>"
+                                                                data-slug="<?php echo htmlspecialchars($juego['slug'] ?? ''); ?>">
+                                                                <i class="fas fa-pen"></i>
+                                                            </button>
+                                                            <a class="btn btn-outline-secondary" target="_blank" title="Ver vista pública"
+                                                               href="game.php?<?php echo !empty($juego['slug']) ? ('slug=' . urlencode($juego['slug'])) : ('id=' . (int)$juego['id']); ?>">
+                                                                <i class="fas fa-external-link-alt"></i>
+                                                            </a>
+                                                            </div>
+                                                        </div>
+                                                    </td>
                                                     <td><?php echo sanitize($juego['plataforma']); ?></td>
                                                     <td><?php echo date('d/m/Y', strtotime($juego['fecha_lanzamiento'])); ?>
                                                     </td>
@@ -479,43 +603,28 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                             </div>
                                             <div class="col-md-4">
                                                 <div class="form-floating mb-3">
-                                                    <select class="form-select" id="plataforma" name="plataforma"
-                                                        required>
-                                                        <option value="">Seleccionar plataforma</option>
-                                                        <option value="PC">PC</option>
-                                                        <option value="PlayStation 5">PlayStation 5</option>
-                                                        <option value="PlayStation 4">PlayStation 4</option>
-                                                        <option value="Xbox Series X/S">Xbox Series X/S</option>
-                                                        <option value="Xbox One">Xbox One</option>
-                                                        <option value="Nintendo Switch">Nintendo Switch</option>
-                                                        <option value="iOS">iOS</option>
-                                                        <option value="Android">Android</option>
-                                                        <option value="Multiplataforma">Multiplataforma</option>
-                                                    </select>
+                                                    <input list="plataformasList" class="form-control" id="plataforma" name="plataforma" placeholder="Plataforma" required>
                                                     <label for="plataforma">Plataforma</label>
-                                                    <div class="invalid-feedback">Por favor, selecciona una plataforma.
-                                                    </div>
+                                                    <datalist id="plataformasList">
+                                                        <?php
+                                                        $pls = $pdo->query("SELECT DISTINCT plataforma FROM videojuegos WHERE plataforma IS NOT NULL AND plataforma <> '' ORDER BY plataforma ASC")->fetchAll(PDO::FETCH_COLUMN);
+                                                        foreach ($pls as $p) echo '<option value="' . htmlspecialchars($p) . '"></option>';
+                                                        ?>
+                                                    </datalist>
+                                                    <div class="invalid-feedback">Por favor, especifica una plataforma.</div>
                                                 </div>
                                             </div>
                                             <div class="col-md-4">
                                                 <div class="form-floating mb-3">
-                                                    <select class="form-select" id="genero" name="genero" required>
-                                                        <option value="">Seleccionar género</option>
-                                                        <option value="Acción">Acción</option>
-                                                        <option value="Aventura">Aventura</option>
-                                                        <option value="RPG">RPG</option>
-                                                        <option value="Estrategia">Estrategia</option>
-                                                        <option value="Simulación">Simulación</option>
-                                                        <option value="Deportes">Deportes</option>
-                                                        <option value="Carreras">Carreras</option>
-                                                        <option value="Shooter">Shooter</option>
-                                                        <option value="Puzzle">Puzzle</option>
-                                                        <option value="Terror">Terror</option>
-                                                        <option value="Plataformas">Plataformas</option>
-                                                        <option value="Indie">Indie</option>
-                                                    </select>
+                                                    <input list="generosList" class="form-control" id="genero" name="genero" placeholder="Género" required>
                                                     <label for="genero">Género</label>
-                                                    <div class="invalid-feedback">Por favor, selecciona un género.</div>
+                                                    <datalist id="generosList">
+                                                        <?php
+                                                        $gens = $pdo->query("SELECT DISTINCT genero FROM videojuegos WHERE genero IS NOT NULL AND genero <> '' ORDER BY genero ASC")->fetchAll(PDO::FETCH_COLUMN);
+                                                        foreach ($gens as $g) echo '<option value="' . htmlspecialchars($g) . '"></option>';
+                                                        ?>
+                                                    </datalist>
+                                                    <div class="invalid-feedback">Por favor, especifica un género.</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -625,10 +734,24 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                             </td>
                                             <td>
                                                 <div class="btn-group" role="group">
-                                                    <button type="button" class="btn btn-sm btn-outline-primary"
-                                                        onclick="editGame(<?php echo $juego['id']; ?>)">
+                                                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal"
+                                                        data-id="<?php echo (int)$juego['id']; ?>"
+                                                        data-titulo="<?php echo htmlspecialchars($juego['titulo'], ENT_QUOTES); ?>"
+                                                        data-descripcion="<?php echo htmlspecialchars($juego['descripcion'], ENT_QUOTES); ?>"
+                                                        data-fecha="<?php echo htmlspecialchars($juego['fecha_lanzamiento']); ?>"
+                                                        data-plataforma="<?php echo htmlspecialchars($juego['plataforma'], ENT_QUOTES); ?>"
+                                                        data-genero="<?php echo htmlspecialchars($juego['genero'], ENT_QUOTES); ?>"
+                                                        data-desarrollador="<?php echo htmlspecialchars($juego['desarrollador'], ENT_QUOTES); ?>"
+                                                        data-precio="<?php echo htmlspecialchars($juego['precio']); ?>"
+                                                        data-futuro="<?php echo !empty($juego['es_futuro_lanzamiento']) ? '1' : '0'; ?>"
+                                                        data-imagen="<?php echo htmlspecialchars($juego['imagen']); ?>"
+                                                        data-slug="<?php echo htmlspecialchars($juego['slug'] ?? ''); ?>">
                                                         <i class="fas fa-edit"></i>
                                                     </button>
+                                                    <a class="btn btn-sm btn-outline-secondary" target="_blank" title="Ver vista pública"
+                                                       href="game.php?<?php echo !empty($juego['slug']) ? ('slug=' . urlencode($juego['slug'])) : ('id=' . (int)$juego['id']); ?>">
+                                                        <i class="fas fa-external-link-alt"></i>
+                                                    </a>
                                                     <button type="button" class="btn btn-sm btn-outline-danger"
                                                         onclick="confirmDelete(<?php echo $juego['id']; ?>, '<?php echo addslashes($juego['titulo']); ?>')">
                                                         <i class="fas fa-trash"></i>
@@ -755,6 +878,74 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </div>
     </div>
 
+        <!-- Modal de Edición de Juego -->
+        <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <form method="post" enctype="multipart/form-data">
+                        <div class="modal-header">
+                            <h5 class="modal-title"><i class="fas fa-edit me-2"></i>Editar Juego</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" name="update_game" value="1">
+                            <input type="hidden" name="game_id" id="edit_game_id">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Título</label>
+                                    <input type="text" class="form-control" id="edit_titulo" name="titulo" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Desarrollador</label>
+                                    <input type="text" class="form-control" id="edit_desarrollador" name="desarrollador" required>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Descripción</label>
+                                    <textarea class="form-control" id="edit_descripcion" name="descripcion" rows="4" required></textarea>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Fecha de lanzamiento</label>
+                                    <input type="date" class="form-control" id="edit_fecha" name="fecha_lanzamiento" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Plataforma</label>
+                                    <input type="text" class="form-control" id="edit_plataforma" name="plataforma" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Género</label>
+                                    <input type="text" class="form-control" id="edit_genero" name="genero" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Precio (€)</label>
+                                    <input type="number" step="0.01" class="form-control" id="edit_precio" name="precio">
+                                </div>
+                                <div class="col-md-8">
+                                    <label class="form-label">Imagen (opcional, reemplaza la actual)</label>
+                                    <input type="file" class="form-control" id="edit_imagen" name="imagen" accept="image/*">
+                                    <div class="form-text">Formatos: JPG, PNG, GIF, WebP</div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="edit_futuro" name="es_futuro_lanzamiento">
+                                        <label class="form-check-label" for="edit_futuro">Es un futuro lanzamiento</label>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <img id="edit_preview" src="" alt="Preview" style="max-width:200px; border-radius:8px; display:none;">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                                        <a id="viewPublicBtn" class="btn btn-outline-secondary" href="#" target="_blank"><i class="fas fa-external-link-alt me-1"></i> Ver vista pública</a>
+                                        <a id="viewListBtn" class="btn btn-outline-primary" href="#" target="_blank"><i class="fas fa-list me-1"></i> Ver en listado</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script>
         // Validación de formulario
@@ -793,6 +984,19 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
             });
         });
 
+                // Activar tab por hash en la URL al cargar
+                (function(){
+                    var hash = window.location.hash;
+                    if (hash) {
+                        var link = document.querySelector('.sidebar-nav a[href="' + hash + '"]');
+                        if (link) {
+                            document.querySelectorAll('.sidebar-nav-link').forEach(function (l) { l.classList.remove('active'); });
+                            link.classList.add('active');
+                            var tab = new bootstrap.Tab(link); tab.show();
+                        }
+                    }
+                })();
+
         // Búsqueda de juegos
         document.getElementById('searchGames').addEventListener('keyup', function () {
             var searchTerm = this.value.toLowerCase();
@@ -821,14 +1025,64 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
             deleteModal.show();
         }
 
-        // Función para editar juego (placeholder - implementar según necesidades)
-        function editGame(gameId) {
-            alert('Funcionalidad de edición en desarrollo. ID del juego: ' + gameId);
-            // Aquí puedes implementar un modal de edición o redirigir a una página de edición
-        }
+                // Cargar datos en el modal de edición
+                var editModal = document.getElementById('editModal');
+                if (editModal) {
+                    editModal.addEventListener('show.bs.modal', function (event) {
+                        var button = event.relatedTarget;
+                        var id = button.getAttribute('data-id');
+                                var slug = button.getAttribute('data-slug') || '';
+                        var titulo = button.getAttribute('data-titulo');
+                        var descripcion = button.getAttribute('data-descripcion');
+                        var fecha = button.getAttribute('data-fecha');
+                        var plataforma = button.getAttribute('data-plataforma');
+                        var genero = button.getAttribute('data-genero');
+                        var desarrollador = button.getAttribute('data-desarrollador');
+                        var precio = button.getAttribute('data-precio');
+                        var futuro = button.getAttribute('data-futuro') === '1';
+                        var imagen = button.getAttribute('data-imagen');
 
-        // Preview de imagen al seleccionar archivo
-        document.getElementById('imagen').addEventListener('change', function (e) {
+                        document.getElementById('edit_game_id').value = id;
+                        document.getElementById('edit_titulo').value = titulo || '';
+                        document.getElementById('edit_descripcion').value = descripcion || '';
+                        document.getElementById('edit_fecha').value = fecha || '';
+                        document.getElementById('edit_plataforma').value = plataforma || '';
+                        document.getElementById('edit_genero').value = genero || '';
+                        document.getElementById('edit_desarrollador').value = desarrollador || '';
+                        document.getElementById('edit_precio').value = precio || '';
+                        document.getElementById('edit_futuro').checked = futuro;
+
+                        var preview = document.getElementById('edit_preview');
+                        if (imagen) {
+                            preview.src = '<?php echo UPLOAD_PATH; ?>' + imagen;
+                            preview.style.display = 'block';
+                        } else {
+                            preview.src = '';
+                            preview.style.display = 'none';
+                        }
+
+                                    // Actualiza enlace a vista pública
+                                    var viewBtn = document.getElementById('viewPublicBtn');
+                                    if (viewBtn) {
+                                        var href = 'game.php?' + (slug ? ('slug=' + encodeURIComponent(slug)) : ('id=' + id));
+                                        viewBtn.href = href;
+                                    }
+
+                                                // Enlace al listado con filtros
+                                                var listBtn = document.getElementById('viewListBtn');
+                                                if (listBtn) {
+                                                    var params = [];
+                                                    if (plataforma) params.push('plataforma=' + encodeURIComponent(plataforma));
+                                                    if (genero) params.push('genero=' + encodeURIComponent(genero));
+                                                    var listHref = 'games.php' + (params.length ? ('?' + params.join('&')) : '');
+                                                    listBtn.href = listHref;
+                                                }
+                    });
+                }
+
+                // Preview de imagen al seleccionar archivo en alta
+                var imagenInput = document.getElementById('imagen');
+                if (imagenInput) imagenInput.addEventListener('change', function (e) {
             var file = e.target.files[0];
             if (file) {
                 var reader = new FileReader();
@@ -849,7 +1103,22 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 };
                 reader.readAsDataURL(file);
             }
-        });
+                });
+
+                // Preview de imagen en modal de edición
+                var editImagenInput = document.getElementById('edit_imagen');
+                if (editImagenInput) editImagenInput.addEventListener('change', function (e) {
+                    var file = e.target.files[0];
+                    if (file) {
+                        var reader = new FileReader();
+                        reader.onload = function (ev) {
+                            var preview = document.getElementById('edit_preview');
+                            preview.src = ev.target.result;
+                            preview.style.display = 'block';
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
 
         // Auto-dismiss alerts después de 5 segundos
         setTimeout(function () {
@@ -860,6 +1129,17 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
             });
         }, 5000);
     </script>
+        <?php if (isset($_GET['edit']) && is_numeric($_GET['edit'])): ?>
+        <script>
+            document.addEventListener('DOMContentLoaded', function(){
+                var link = document.querySelector('.sidebar-nav a[href="#manage-games"]');
+                if (link) { var t = new bootstrap.Tab(link); t.show(); link.classList.add('active'); }
+                var id = '<?php echo (int)$_GET['edit']; ?>';
+                var btn = document.querySelector('button[data-bs-target="#editModal"][data-id="' + id + '"]');
+                if (btn) { btn.click(); }
+            });
+        </script>
+        <?php endif; ?>
 </body>
 
 </html>

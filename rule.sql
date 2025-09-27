@@ -40,6 +40,7 @@ CREATE TABLE verification_tokens (
 CREATE TABLE videojuegos (
     id INT PRIMARY KEY AUTO_INCREMENT,
     titulo VARCHAR(255) NOT NULL,
+    slug VARCHAR(255) UNIQUE,
     descripcion TEXT,
     fecha_lanzamiento DATE,
     plataforma VARCHAR(100),
@@ -51,6 +52,14 @@ CREATE TABLE videojuegos (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
+
+-- Índices para mejorar búsquedas y filtros
+CREATE INDEX idx_videojuegos_titulo ON videojuegos (titulo);
+CREATE UNIQUE INDEX idx_videojuegos_slug ON videojuegos (slug);
+CREATE INDEX idx_videojuegos_plataforma ON videojuegos (plataforma);
+CREATE INDEX idx_videojuegos_genero ON videojuegos (genero);
+CREATE INDEX idx_videojuegos_fecha ON videojuegos (fecha_lanzamiento);
+CREATE INDEX idx_videojuegos_estado ON videojuegos (es_futuro_lanzamiento);
 
 -- Insertar usuario admin por defecto (contraseña: admin123)
 INSERT INTO usuarios (username, password, role) 

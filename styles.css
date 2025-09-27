@@ -140,6 +140,17 @@ body {
     margin-bottom: 1rem;
 }
 
+/* Ajuste de imagen en Próximo Lanzamiento */
+.object-cover { object-fit: cover; }
+/* Evitar que la imagen estire para igualar la altura del contenido adyacente */
+.future-release-card .col-md-4 { display: block; }
+/* Altura fluida en desktop para que no se "expanda" demasiado */
+.future-release-card .col-md-4 img { width: 100%; height: clamp(220px, 30vh, 420px); object-fit: cover; }
+@media (max-width: 767.98px) {
+    /* En móviles, dejamos que la imagen tome su altura natural */
+    .future-release-card .col-md-4 img { height: auto; max-height: 60vh; }
+}
+
 /* Contador regresivo */
 .countdown-container {
     background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
@@ -199,6 +210,10 @@ body {
     color: var(--dark-color);
 }
 
+/* Game detail related and meta */
+.meta li { margin-bottom: .5rem; }
+.card-related img { width: 100%; height: 140px; object-fit: cover; border-radius: 8px; }
+
 /* Enlaces sociales */
 .social-links a {
     transition: var(--transition);
@@ -218,6 +233,21 @@ footer {
 footer h5 {
     color: var(--accent-color);
     font-weight: 600;
+}
+
+/* Game detail hero */
+.game-hero {
+    background: #0f172a;
+    color: #fff;
+}
+.game-hero-img {
+    width: 100%;
+    height: clamp(260px, 30vh, 520px);
+    object-fit: cover;
+    border-radius: 12px;
+}
+@media (max-width: 767.98px) {
+    .game-hero-img { height: auto; max-height: 60vh; }
 }
 
 /* Formularios */

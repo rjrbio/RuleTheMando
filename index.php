@@ -67,6 +67,9 @@ if (isset($_GET['buscar']) && !empty($_GET['buscar'])) {
                 
                 <!-- Menú de usuario -->
                 <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="games.php"><i class="fas fa-list"></i> Juegos</a>
+                    </li>
                     <?php if (isLoggedIn()): ?>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
@@ -99,10 +102,13 @@ if (isset($_GET['buscar']) && !empty($_GET['buscar'])) {
                     <?php foreach ($resultadosBusqueda as $juego): ?>
                         <div class="col-md-4 mb-4">
                             <div class="card game-card h-100">
-                                <img src="<?php echo $juego['imagen'] ? UPLOAD_PATH . $juego['imagen'] : 'https://via.placeholder.com/300x200?text=Sin+Imagen'; ?>" 
-                                     class="card-img-top" alt="<?php echo sanitize($juego['titulo']); ?>">
+                                <?php $slug = isset($juego['slug']) ? $juego['slug'] : ''; $href = 'game.php?' . ($slug ? ('slug=' . urlencode($slug)) : ('id=' . (int)$juego['id'])); ?>
+                                <a href="<?php echo $href; ?>">
+                                    <img src="<?php echo $juego['imagen'] ? UPLOAD_PATH . $juego['imagen'] : 'https://via.placeholder.com/300x200?text=Sin+Imagen'; ?>" 
+                                         class="card-img-top" alt="<?php echo sanitize($juego['titulo']); ?>">
+                                </a>
                                 <div class="card-body d-flex flex-column">
-                                    <h5 class="card-title"><?php echo sanitize($juego['titulo']); ?></h5>
+                                    <h5 class="card-title"><a href="<?php echo $href; ?>" class="text-decoration-none"><?php echo sanitize($juego['titulo']); ?></a></h5>
                                     <p class="card-text flex-grow-1"><?php echo sanitize(substr($juego['descripcion'], 0, 100)) . '...'; ?></p>
                                     <div class="mt-auto">
                                         <small class="text-muted">
@@ -112,6 +118,12 @@ if (isset($_GET['buscar']) && !empty($_GET['buscar'])) {
                                         <small class="text-muted">
                                             <i class="fas fa-gamepad"></i> <?php echo sanitize($juego['plataforma']); ?>
                                         </small>
+                                            <div class="mt-2 d-flex gap-2">
+                                                <a class="btn btn-sm btn-outline-primary" href="<?php echo $href; ?>"><i class="fas fa-info-circle me-1"></i> Ver detalle</a>
+                                                <?php if (isAdmin()): ?>
+                                                    <a class="btn btn-sm btn-outline-secondary" href="admin.php?edit=<?php echo (int)$juego['id']; ?>#manage-games"><i class="fas fa-edit me-1"></i> Editar</a>
+                                                <?php endif; ?>
+                                            </div>
                                     </div>
                                 </div>
                             </div>
@@ -133,10 +145,13 @@ if (isset($_GET['buscar']) && !empty($_GET['buscar'])) {
                     <?php foreach ($ultimosJuegos as $juego): ?>
                         <div class="col-lg-4 col-md-6 mb-4">
                             <div class="card game-card h-100">
-                                <img src="<?php echo $juego['imagen'] ? UPLOAD_PATH . $juego['imagen'] : 'https://via.placeholder.com/300x200?text=Sin+Imagen'; ?>" 
-                                     class="card-img-top" alt="<?php echo sanitize($juego['titulo']); ?>">
+                                <?php $slug = isset($juego['slug']) ? $juego['slug'] : ''; $href = 'game.php?' . ($slug ? ('slug=' . urlencode($slug)) : ('id=' . (int)$juego['id'])); ?>
+                                <a href="<?php echo $href; ?>">
+                                    <img src="<?php echo $juego['imagen'] ? UPLOAD_PATH . $juego['imagen'] : 'https://via.placeholder.com/300x200?text=Sin+Imagen'; ?>" 
+                                         class="card-img-top" alt="<?php echo sanitize($juego['titulo']); ?>">
+                                </a>
                                 <div class="card-body d-flex flex-column">
-                                    <h5 class="card-title"><?php echo sanitize($juego['titulo']); ?></h5>
+                                    <h5 class="card-title"><a href="<?php echo $href; ?>" class="text-decoration-none"><?php echo sanitize($juego['titulo']); ?></a></h5>
                                     <p class="card-text flex-grow-1"><?php echo sanitize(substr($juego['descripcion'], 0, 100)) . '...'; ?></p>
                                     <div class="mt-auto">
                                         <div class="d-flex justify-content-between align-items-center mb-2">
@@ -152,6 +167,12 @@ if (isset($_GET['buscar']) && !empty($_GET['buscar'])) {
                                         <small class="text-muted">
                                             <i class="fas fa-gamepad"></i> <?php echo sanitize($juego['plataforma']); ?>
                                         </small>
+                                        <div class="mt-2 d-flex gap-2">
+                                            <a class="btn btn-sm btn-outline-primary" href="<?php echo $href; ?>"><i class="fas fa-info-circle me-1"></i> Ver detalle</a>
+                                            <?php if (isAdmin()): ?>
+                                                <a class="btn btn-sm btn-outline-secondary" href="admin.php?edit=<?php echo (int)$juego['id']; ?>#manage-games"><i class="fas fa-edit me-1"></i> Editar</a>
+                                            <?php endif; ?>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -162,17 +183,24 @@ if (isset($_GET['buscar']) && !empty($_GET['buscar'])) {
 
             <!-- Futuro Lanzamiento -->
             <?php if ($futuroJuego): ?>
+                <?php 
+                    // Preparar URL del futuro lanzamiento (slug si existe)
+                    $slugF = isset($futuroJuego['slug']) ? $futuroJuego['slug'] : ''; 
+                    $hrefF = 'game.php?' . ($slugF ? ('slug=' . urlencode($slugF)) : ('id=' . (int)$futuroJuego['id'])); 
+                ?>
                 <section class="mb-5">
                     <h2 class="mb-4"><i class="fas fa-rocket text-info"></i> Próximo Lanzamiento</h2>
                     <div class="card future-release-card">
                         <div class="row g-0">
                             <div class="col-md-4">
-                                <img src="<?php echo $futuroJuego['imagen'] ? UPLOAD_PATH . $futuroJuego['imagen'] : 'https://via.placeholder.com/400x300?text=Próximamente'; ?>" 
-                                     class="img-fluid h-100 object-cover" alt="<?php echo sanitize($futuroJuego['titulo']); ?>">
+                                <a href="<?php echo $hrefF; ?>">
+                                    <img src="<?php echo $futuroJuego['imagen'] ? UPLOAD_PATH . $futuroJuego['imagen'] : 'https://via.placeholder.com/400x300?text=Próximamente'; ?>" 
+                                         class="img-fluid object-cover" alt="<?php echo sanitize($futuroJuego['titulo']); ?>">
+                                </a>
                             </div>
                             <div class="col-md-8">
                                 <div class="card-body h-100 d-flex flex-column">
-                                    <h3 class="card-title"><?php echo sanitize($futuroJuego['titulo']); ?></h3>
+                                    <h3 class="card-title"><a href="<?php echo $hrefF; ?>" class="text-decoration-none"><?php echo sanitize($futuroJuego['titulo']); ?></a></h3>
                                     <p class="card-text flex-grow-1"><?php echo sanitize($futuroJuego['descripcion']); ?></p>
                                     
                                     <!-- Contador regresivo -->
@@ -190,6 +218,12 @@ if (isset($_GET['buscar']) && !empty($_GET['buscar'])) {
                                         <?php if ($futuroJuego['precio']): ?>
                                             <p class="mb-0"><strong>Precio estimado:</strong> <span class="text-success">€<?php echo number_format($futuroJuego['precio'], 2); ?></span></p>
                                         <?php endif; ?>
+                                        <div class="mt-3 d-flex gap-2">
+                                            <a class="btn btn-primary" href="<?php echo $hrefF; ?>"><i class="fas fa-info-circle me-1"></i> Ver detalle</a>
+                                            <?php if (isAdmin()): ?>
+                                                <a class="btn btn-outline-secondary" href="admin.php?edit=<?php echo (int)$futuroJuego['id']; ?>#manage-games"><i class="fas fa-edit me-1"></i> Editar</a>
+                                            <?php endif; ?>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
