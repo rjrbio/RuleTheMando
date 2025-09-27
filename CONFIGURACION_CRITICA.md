@@ -5,10 +5,12 @@
 ### 1. 📍 **Site URL y Redirect URLs**
 Ve a: **Authentication > URL Configuration**
 
-- **Site URL**: `http://localhost/RuleTheMando`
+- **Site URL**: `http://localhost/RuleTheMando` (dev) o `https://rjrbio.alwaysdata.net` (prod)
 - **Redirect URLs**: 
-  - `http://localhost/RuleTheMando/verify-supabase.php`
+  - `http://localhost/RuleTheMando/verify-supabase.php` (dev)
+  - `https://rjrbio.alwaysdata.net/verify-supabase.php` (prod)
   - `http://localhost/RuleTheMando/**` (wildcard para desarrollo)
+  - `https://rjrbio.alwaysdata.net/**` (wildcard para producción)
 
 ### 2. 📧 **Template de Email**
 Ve a: **Authentication > Templates**

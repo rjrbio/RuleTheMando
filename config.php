@@ -7,10 +7,19 @@ define('DB_NAME', 'rjrbio_rule');
 
 // Configuración de la aplicación
 define('SITE_NAME', 'Rule the Mando');
-define('SITE_URL', 'http://localhost:8080');
+//       define('SITE_URL', 'https://rjrbio.alwaysdata.net');
+$env = getenv('APP_ENV') ?: 'prod';
+define('SITE_URL', $env === 'dev' ? 'http://localhost:8080' : 'https://rjrbio.alwaysdata.net');
 define('UPLOAD_PATH', 'uploads/');
 
 // Configuración de sesión
+// Endurecer cookies de sesión cuando usamos HTTPS en producción
+if (stripos(SITE_URL, 'https://') === 0) {
+    ini_set('session.cookie_secure', '1');
+}
+ini_set('session.cookie_httponly', '1');
+// Lax ayuda a que los redirects de verificación funcionen pero mitiga CSRF básico en navegaciones cruzadas
+ini_set('session.cookie_samesite', 'Lax');
 session_start();
 
 // Conexión a la base de datos

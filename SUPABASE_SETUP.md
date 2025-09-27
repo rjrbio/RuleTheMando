@@ -20,9 +20,10 @@ define('SUPABASE_SERVICE_ROLE_KEY', 'tu-clave-service-role');
 ### 3. Configurar Auth en Supabase Dashboard
 
 #### En el panel de Auth > Settings:
-- **Site URL**: `http://localhost/rule_the_mando` (desarrollo) o tu dominio
+- **Site URL**: `http://localhost/rule_the_mando` (desarrollo) o tu dominio de producción, por ejemplo `https://rjrbio.alwaysdata.net`
 - **Redirect URLs**: 
-  - `http://localhost/rule_the_mando/verify-supabase.php`
+  - `http://localhost/rule_the_mando/verify-supabase.php` (desarrollo)
+  - `https://rjrbio.alwaysdata.net/verify-supabase.php` (producción)
   - Tu dominio en producción
 
 #### Templates de Email:
@@ -61,7 +62,7 @@ En Auth > Settings > SMTP Settings:
 
 ## 🚀 Para usar en producción:
 
-1. **Cambiar SITE_URL** en `config.php` a tu dominio real
+1. **Cambiar SITE_URL** en `config.php` a tu dominio real (`https://rjrbio.alwaysdata.net`)
 2. **Configurar SUPABASE_URL** con tu proyecto real
 3. **Configurar redirect URLs** en Supabase Dashboard
 4. **Configurar SMTP** en Supabase para mejor entregabilidad

@@ -128,6 +128,21 @@ body {
     background-color: var(--primary-color);
     border-color: var(--primary-color);
     color: #fff;
+    filter: brightness(1.05);
+    box-shadow: 0 8px 20px rgba(255, 122, 24, 0.25);
+}
+
+/* Outline light (buscador navbar, etc.) con transición suave */
+.btn-outline-light {
+    color: #fff;
+    border-color: #fff;
+}
+.btn-outline-light:hover,
+.btn-outline-light:focus {
+    background-color: rgba(255,255,255,0.15);
+    color: #fff;
+    border-color: #fff;
+    box-shadow: 0 8px 20px rgba(255,255,255,0.18);
 }
 
 /* Tarjetas de juegos */
@@ -343,6 +358,8 @@ footer h5 {
     background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
     transform: translateY(-2px);
     filter: brightness(1.05);
+    box-shadow: 0 10px 24px color-mix(in srgb, var(--secondary-color) 30%, transparent),
+                0 4px 10px color-mix(in srgb, var(--primary-color) 18%, transparent);
 }
 
 .btn-secondary {
@@ -353,6 +370,8 @@ footer h5 {
 .btn-secondary:hover {
     filter: brightness(1.05);
     transform: translateY(-1px);
+    box-shadow: 0 10px 24px color-mix(in srgb, var(--secondary-color) 28%, transparent),
+                0 4px 10px color-mix(in srgb, var(--accent-color) 18%, transparent);
 }
 
 .btn-outline-secondary {
@@ -364,6 +383,7 @@ footer h5 {
     background-color: var(--accent-color);
     border-color: var(--accent-color);
     color: #fff;
+    box-shadow: 0 8px 20px rgba(255, 143, 45, 0.25);
 }
 
 /* Alertas personalizadas */

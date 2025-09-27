@@ -37,33 +37,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } catch (Exception $e) { $pdo->rollBack(); }
   }
   if (isset($_POST['pos']) && is_array($_POST['pos'])) {
-    // Reordenar según posiciones proporcionadas
-    $stmt = $pdo->prepare('SELECT game_id, posicion FROM favoritos WHERE user_id=? ORDER BY posicion ASC');
-    $stmt->execute([$uid]);
-    $curr = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    // Construir items con posición deseada o enorme si no se dio
-    $items = [];
-    $index = 0;
-    foreach ($curr as $row) {
-      $gid = (int)$row['game_id'];
-      $desired = isset($_POST['pos'][$gid]) ? (int)$_POST['pos'][$gid] : PHP_INT_MAX;
-      if ($desired <= 0) $desired = PHP_INT_MAX;
-      $items[] = ['gid'=>$gid, 'desired'=>$desired, 'idx'=>$index++];
-    }
-    // Orden estable por 'desired' y luego por índice actual
-    usort($items, function($a,$b){
-      if ($a['desired'] === $b['desired']) return $a['idx'] <=> $b['idx'];
-      return $a['desired'] <=> $b['desired'];
-    });
-    // Aplicar posiciones continuas 1..N
+    // Reubicar cada juego en la posición elegida insertándolo y desplazando el resto
     $pdo->beginTransaction();
     try {
-      $pos = 1;
-      foreach ($items as $it) {
-        $pdo->prepare('REPLACE INTO favoritos (user_id, game_id, posicion) VALUES (?, ?, ?)')->execute([$uid, $it['gid'], $pos++]);
+      // Posiciones actuales
+      $map = [];
+      $stmt = $pdo->prepare('SELECT game_id, posicion FROM favoritos WHERE user_id=? ORDER BY posicion ASC');
+      $stmt->execute([$uid]);
+      $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+      $total = count($rows);
+      foreach ($rows as $r) { $map[(int)$r['game_id']] = (int)$r['posicion']; }
+
+      foreach ($_POST['pos'] as $gidStr => $desiredStr) {
+        if (!is_numeric($gidStr) || !isset($map[(int)$gidStr])) continue;
+        $gid = (int)$gidStr;
+        $currPos = (int)$map[$gid];
+        $desired = (int)$desiredStr;
+        if ($desired < 1) $desired = 1;
+        if ($desired > $total) $desired = $total;
+        if ($desired === $currPos) continue;
+
+    // Liberar la posición actual del juego para evitar conflictos con el índice único
+    $pdo->prepare('UPDATE favoritos SET posicion = 0 WHERE user_id=? AND game_id=?')
+      ->execute([$uid, $gid]);
+
+    if ($desired < $currPos) {
+          // Mover hacia arriba: desplazar [desired, currPos-1] hacia abajo
+          $pdo->prepare('UPDATE favoritos SET posicion = posicion + 1 WHERE user_id=? AND posicion >= ? AND posicion < ?')
+        ->execute([$uid, $desired, $currPos]);
+        } else {
+          // Mover hacia abajo: desplazar (currPos, desired] hacia arriba
+          $pdo->prepare('UPDATE favoritos SET posicion = posicion - 1 WHERE user_id=? AND posicion <= ? AND posicion > ?')
+        ->execute([$uid, $desired, $currPos]);
+        }
+        // Colocar el juego en la posición deseada ya liberada
+        $pdo->prepare('UPDATE favoritos SET posicion = ? WHERE user_id=? AND game_id=?')
+            ->execute([$desired, $uid, $gid]);
+
+        // Recalcular mapa para siguientes operaciones dentro de la misma petición
+        $map = [];
+        $stmt = $pdo->prepare('SELECT game_id, posicion FROM favoritos WHERE user_id=? ORDER BY posicion ASC');
+        $stmt->execute([$uid]);
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) { $map[(int)$r['game_id']] = (int)$r['posicion']; }
       }
+
       $pdo->commit();
-      $_SESSION['flash_message'] = 'Favoritos actualizados';
+      $_SESSION['flash_message'] = 'Orden actualizado';
       $_SESSION['flash_success'] = true;
       redirect('favorites.php');
     } catch (Exception $e) { $pdo->rollBack(); }
@@ -157,7 +176,6 @@ $favs = $stmt->fetchAll(PDO::FETCH_ASSOC);
                       <img src="<?php echo $f['imagen']?UPLOAD_PATH.$f['imagen']:'https://via.placeholder.com/80x80?text=Sin+Imagen'; ?>" width="80" height="80" style="object-fit:cover;border-radius:8px;" alt="<?php echo htmlspecialchars($f['titulo']); ?>">
                       <div>
                         <a href="<?php echo $href; ?>" class="fw-semibold text-decoration-none"><?php echo htmlspecialchars($f['titulo']); ?></a>
-                        <div class="text-muted small">ID: <?php echo (int)$f['game_id']; ?></div>
                       </div>
                     </div>
                   </td>
@@ -167,9 +185,8 @@ $favs = $stmt->fetchAll(PDO::FETCH_ASSOC);
                   </td>
                   <td>
                     <div class="d-flex align-items-center gap-2">
-                      <div class="input-group input-group-sm" style="width: 140px;">
-                        <input type="number" class="form-control" min="1" name="pos[<?php echo (int)$f['game_id']; ?>]" value="<?php echo (int)$pos; ?>">
-                        <span class="input-group-text">/ <?php echo count($favs); ?></span>
+                      <div class="input-group input-group-sm" style="width: 100px;">
+                        <input type="number" class="form-control" min="1" name="pos[<?php echo (int)$f['game_id']; ?>]" value="<?php echo (int)$pos; ?>" aria-label="Mover a posición">
                       </div>
                       <button name="remove_id" value="<?php echo (int)$f['game_id']; ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Quitar de favoritos?');"><i class="fas fa-trash"></i></button>
                     </div>
