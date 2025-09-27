@@ -1,6 +1,84 @@
 <?php
 require_once 'config.php';
 
+// Asegurar tablas para favoritos y valoraciones
+try {
+  $pdo->exec("CREATE TABLE IF NOT EXISTS valoraciones (
+    user_id INT NOT NULL,
+    game_id INT NOT NULL,
+    rating TINYINT UNSIGNED NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, game_id),
+    INDEX (game_id)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+  $pdo->exec("CREATE TABLE IF NOT EXISTS favoritos (
+    user_id INT NOT NULL,
+    game_id INT NOT NULL,
+    posicion INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, game_id),
+    UNIQUE KEY uniq_user_pos (user_id, posicion),
+    INDEX (user_id),
+    INDEX (game_id)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+} catch (Exception $e) {
+  // Silenciar creación fallida para no romper la vista pública
+}
+
+// Procesar acciones de usuario (POST) para rating y favoritos
+if (isLoggedIn() && $_SERVER['REQUEST_METHOD'] === 'POST') {
+  $uid = (int)$_SESSION['user_id'];
+  if (isset($_POST['set_rating'])) {
+    $rid = isset($_POST['game_id']) ? (int)$_POST['game_id'] : 0;
+    $rval = isset($_POST['rating']) ? (int)$_POST['rating'] : 0;
+    if ($rid > 0 && $rval >= 1 && $rval <= 10) {
+      $stmt = $pdo->prepare('REPLACE INTO valoraciones (user_id, game_id, rating, updated_at) VALUES (?, ?, ?, NOW())');
+      $stmt->execute([$uid, $rid, $rval]);
+    }
+    // PRG
+    $target = isset($_GET['slug']) ? ('game.php?slug=' . urlencode($_GET['slug'])) : ('game.php?id=' . (int)$rid);
+    redirect($target);
+  }
+  if (isset($_POST['fav_action'])) {
+    $gid = isset($_POST['game_id']) ? (int)$_POST['game_id'] : 0;
+    if ($gid > 0) {
+      if ($_POST['fav_action'] === 'add') {
+        // determinar siguiente posición libre
+        $maxStmt = $pdo->prepare('SELECT COALESCE(MAX(posicion),0)+1 FROM favoritos WHERE user_id = ?');
+        $maxStmt->execute([$uid]);
+        $next = (int)$maxStmt->fetchColumn();
+        if (isset($_POST['posicion']) && (int)$_POST['posicion'] > 0) {
+          // Intentar insertar en posición deseada corriendo hacia abajo los existentes
+          $pos = (int)$_POST['posicion'];
+          $pdo->beginTransaction();
+          try {
+            $pdo->prepare('UPDATE favoritos SET posicion = posicion + 1 WHERE user_id=? AND posicion >= ?')->execute([$uid, $pos]);
+            $pdo->prepare('REPLACE INTO favoritos (user_id, game_id, posicion) VALUES (?, ?, ?)')->execute([$uid, $gid, $pos]);
+            $pdo->commit();
+          } catch (Exception $e) { $pdo->rollBack(); }
+        } else {
+          $pdo->prepare('REPLACE INTO favoritos (user_id, game_id, posicion) VALUES (?, ?, ?)')->execute([$uid, $gid, max(1,$next)]);
+        }
+      } elseif ($_POST['fav_action'] === 'remove') {
+        // eliminar y compactar posiciones
+        $pdo->beginTransaction();
+        try {
+          $posStmt = $pdo->prepare('SELECT posicion FROM favoritos WHERE user_id=? AND game_id=?');
+          $posStmt->execute([$uid, $gid]);
+          $pos = (int)$posStmt->fetchColumn();
+          $pdo->prepare('DELETE FROM favoritos WHERE user_id=? AND game_id=?')->execute([$uid, $gid]);
+          if ($pos > 0) {
+            $pdo->prepare('UPDATE favoritos SET posicion = posicion - 1 WHERE user_id=? AND posicion > ?')->execute([$uid, $pos]);
+          }
+          $pdo->commit();
+        } catch (Exception $e) { $pdo->rollBack(); }
+      }
+    }
+    $target = isset($_GET['slug']) ? ('game.php?slug=' . urlencode($_GET['slug'])) : ('game.php?id=' . (int)$gid);
+    redirect($target);
+  }
+}
+
 // Resolver por id o slug
 $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 $slug = isset($_GET['slug']) ? trim($_GET['slug']) : '';
@@ -30,6 +108,21 @@ if (!$juego) {
 $relStmt = $pdo->prepare('SELECT id, titulo, imagen, genero, plataforma FROM videojuegos WHERE id <> ? AND (genero = ? OR plataforma = ?) ORDER BY created_at DESC LIMIT 6');
 $relStmt->execute([$id, $juego['genero'], $juego['plataforma']]);
 $relacionados = $relStmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Nota de la comunidad y estado del usuario
+$avg = null; $cnt = 0; $myRating = null; $isFav = false; $favPos = null;
+try {
+  $s = $pdo->prepare('SELECT ROUND(AVG(rating),1) avg_rating, COUNT(*) c FROM valoraciones WHERE game_id=?');
+  $s->execute([$juego['id']]);
+  $row = $s->fetch(PDO::FETCH_ASSOC); if ($row) { $avg = $row['avg_rating']; $cnt = (int)$row['c']; }
+  if (isLoggedIn()) {
+    $uid = (int)$_SESSION['user_id'];
+    $s = $pdo->prepare('SELECT rating FROM valoraciones WHERE user_id=? AND game_id=?');
+    $s->execute([$uid, $juego['id']]); $r = $s->fetch(PDO::FETCH_ASSOC); if ($r) $myRating = (int)$r['rating'];
+    $s = $pdo->prepare('SELECT posicion FROM favoritos WHERE user_id=? AND game_id=?');
+    $s->execute([$uid, $juego['id']]); $f = $s->fetch(PDO::FETCH_ASSOC); if ($f) { $isFav = true; $favPos = (int)$f['posicion']; }
+  }
+} catch (Exception $e) { /* noop */ }
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -76,6 +169,9 @@ $relacionados = $relStmt->fetchAll(PDO::FETCH_ASSOC);
           <li class="nav-item"><a class="nav-link" href="games.php"><i class="fas fa-list"></i> Juegos</a></li>
         </ul>
         <ul class="navbar-nav">
+          <?php if (isLoggedIn()): ?>
+            <li class="nav-item"><a class="nav-link" href="favorites.php"><i class="fas fa-trophy"></i> Mis Favoritos</a></li>
+          <?php endif; ?>
           <?php if (isAdmin()): ?>
             <li class="nav-item"><a class="nav-link" href="admin.php?edit=<?php echo (int)$juego['id']; ?>#manage-games"><i class="fas fa-edit"></i> Editar</a></li>
           <?php endif; ?>
@@ -104,6 +200,41 @@ $relacionados = $relStmt->fetchAll(PDO::FETCH_ASSOC);
             <?php else: ?>
               <span class="badge bg-success">Disponible</span>
             <?php endif; ?>
+          </div>
+          <div class="mt-3">
+            <div class="d-flex align-items-center flex-wrap gap-3">
+              <div>
+                <span class="fw-semibold">Nota de la comunidad:</span>
+                <span class="badge bg-primary ms-1"><?php echo $avg !== null ? $avg : '-'; ?></span>
+                <small class="text-muted ms-1"><?php echo (int)$cnt; ?> votos</small>
+              </div>
+              <?php if (isLoggedIn()): ?>
+              <form class="d-flex align-items-center gap-2" method="post">
+                <input type="hidden" name="set_rating" value="1">
+                <input type="hidden" name="game_id" value="<?php echo (int)$juego['id']; ?>">
+                <label for="rating" class="small text-muted mb-0">Tu nota</label>
+                <select name="rating" id="rating" class="form-select form-select-sm" style="width: auto;">
+                  <?php for ($i=1; $i<=10; $i++): ?>
+                    <option value="<?php echo $i; ?>" <?php echo ($myRating===$i)?'selected':''; ?>><?php echo $i; ?></option>
+                  <?php endfor; ?>
+                </select>
+                <button class="btn btn-sm btn-outline-primary" type="submit"><i class="fas fa-star me-1"></i> Guardar</button>
+              </form>
+              <form method="post">
+                <input type="hidden" name="game_id" value="<?php echo (int)$juego['id']; ?>">
+                <?php if ($isFav): ?>
+                  <input type="hidden" name="fav_action" value="remove">
+                  <button class="btn btn-sm btn-outline-danger" type="submit"><i class="fas fa-heart-broken me-1"></i> Quitar de favoritos<?php echo $favPos? ' (#'.$favPos.')':''; ?></button>
+                <?php else: ?>
+                  <input type="hidden" name="fav_action" value="add">
+                  <button class="btn btn-sm btn-outline-success" type="submit"><i class="fas fa-heart me-1"></i> Añadir a favoritos</button>
+                <?php endif; ?>
+              </form>
+              <a class="btn btn-sm btn-outline-secondary" href="favorites.php"><i class="fas fa-trophy me-1"></i> Mi Top favoritos</a>
+              <?php else: ?>
+                <small class="text-muted">Inicia sesión para puntuar y marcar favoritos.</small>
+              <?php endif; ?>
+            </div>
           </div>
         </div>
       </div>

@@ -1,12 +1,25 @@
 <?php
 require_once 'config.php';
 
+// Asegurar tabla de valoraciones para poder hacer agregados (no falla si ya existe)
+try {
+  $pdo->exec("CREATE TABLE IF NOT EXISTS valoraciones (
+    user_id INT NOT NULL,
+    game_id INT NOT NULL,
+    rating TINYINT UNSIGNED NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, game_id), INDEX (game_id)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+} catch (Exception $e) {}
+
 // Filtros básicos
 $buscar = isset($_GET['q']) ? trim($_GET['q']) : '';
 $plataforma = isset($_GET['plataforma']) ? trim($_GET['plataforma']) : '';
 $genero = isset($_GET['genero']) ? trim($_GET['genero']) : '';
 $estado = isset($_GET['estado']) ? trim($_GET['estado']) : ''; // all|available|upcoming
 $startsWith = isset($_GET['starts']) ? strtoupper(substr(trim($_GET['starts']), 0, 1)) : '';
+// Orden
+$orden = isset($_GET['orden']) ? trim($_GET['orden']) : 'recientes';
 
 // Paginación
 $page = isset($_GET['page']) && is_numeric($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
@@ -49,12 +62,28 @@ $countStmt->execute($params);
 $total = (int)$countStmt->fetchColumn();
 $totalPages = (int)ceil($total / $perPage);
 
-// Obtener página actual
-$sql = 'SELECT * FROM videojuegos';
+// Obtener página actual con agregados de nota
+$sql = 'SELECT v.*, COALESCE(r.avg_rating, 0) AS avg_rating, COALESCE(r.votes, 0) AS votes
+        FROM videojuegos v
+        LEFT JOIN (
+          SELECT game_id, AVG(rating) AS avg_rating, COUNT(*) AS votes
+          FROM valoraciones
+          GROUP BY game_id
+        ) r ON r.game_id = v.id';
 if (!empty($where)) {
   $sql .= ' WHERE ' . implode(' AND ', $where);
 }
-$sql .= ' ORDER BY created_at DESC LIMIT ' . (int)$perPage . ' OFFSET ' . (int)$offset;
+// Orden dinámico
+switch ($orden) {
+  case 'nota_desc': $orderBy = 'avg_rating DESC, votes DESC, v.created_at DESC'; break;
+  case 'nota_asc': $orderBy = 'avg_rating ASC, v.created_at DESC'; break;
+  case 'titulo_asc': $orderBy = 'v.titulo ASC'; break;
+  case 'titulo_desc': $orderBy = 'v.titulo DESC'; break;
+  case 'fecha_asc': $orderBy = 'v.fecha_lanzamiento ASC'; break;
+  case 'fecha_desc': $orderBy = 'v.fecha_lanzamiento DESC'; break;
+  default: $orderBy = 'v.created_at DESC';
+}
+$sql .= ' ORDER BY ' . $orderBy . ' LIMIT ' . (int)$perPage . ' OFFSET ' . (int)$offset;
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
@@ -98,6 +127,7 @@ $generos = $pdo->query("SELECT DISTINCT genero FROM videojuegos WHERE genero IS 
         </ul>
         <ul class="navbar-nav">
           <?php if (isLoggedIn()): ?>
+            <li class="nav-item"><a class="nav-link" href="favorites.php"><i class="fas fa-trophy"></i> Mis Favoritos</a></li>
             <li class="nav-item dropdown">
               <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
                 <i class="fas fa-user"></i> <?php echo sanitize($_SESSION['username']); ?>
@@ -156,6 +186,18 @@ $generos = $pdo->query("SELECT DISTINCT genero FROM videojuegos WHERE genero IS 
                   <option value="" <?php echo $estado===''?'selected':''; ?>>Todos</option>
                   <option value="available" <?php echo $estado==='available'?'selected':''; ?>>Disponible</option>
                   <option value="upcoming" <?php echo $estado==='upcoming'?'selected':''; ?>>Próximamente</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Ordenar por</label>
+                <select class="form-select" name="orden">
+                  <option value="recientes" <?php echo $orden==='recientes'?'selected':''; ?>>Más recientes</option>
+                  <option value="nota_desc" <?php echo $orden==='nota_desc'?'selected':''; ?>>Nota comunidad (alta a baja)</option>
+                  <option value="nota_asc" <?php echo $orden==='nota_asc'?'selected':''; ?>>Nota comunidad (baja a alta)</option>
+                  <option value="titulo_asc" <?php echo $orden==='titulo_asc'?'selected':''; ?>>Título (A-Z)</option>
+                  <option value="titulo_desc" <?php echo $orden==='titulo_desc'?'selected':''; ?>>Título (Z-A)</option>
+                  <option value="fecha_desc" <?php echo $orden==='fecha_desc'?'selected':''; ?>>Fecha lanzamiento (nueva a antigua)</option>
+                  <option value="fecha_asc" <?php echo $orden==='fecha_asc'?'selected':''; ?>>Fecha lanzamiento (antigua a nueva)</option>
                 </select>
               </div>
               <div class="d-grid gap-2">
@@ -229,6 +271,11 @@ $generos = $pdo->query("SELECT DISTINCT genero FROM videojuegos WHERE genero IS 
                       <a class="btn btn-outline-primary btn-sm" href="game.php?<?php echo $slug ? ('slug=' . urlencode($slug)) : ('id=' . (int)$juego['id']); ?>">
                         <i class="fas fa-info-circle me-1"></i> Ver detalle
                       </a>
+                      <span class="ms-auto align-self-center small text-muted">
+                        <i class="fas fa-star text-warning"></i>
+                        <?php echo $juego['avg_rating'] ? number_format((float)$juego['avg_rating'], 1) : '-'; ?>
+                        (<?php echo (int)$juego['votes']; ?>)
+                      </span>
                       <?php if (isAdmin()): ?>
                         <a class="btn btn-outline-secondary btn-sm" href="admin.php?edit=<?php echo (int)$juego['id']; ?>#manage-games" title="Editar en panel admin">
                           <i class="fas fa-edit me-1"></i> Editar

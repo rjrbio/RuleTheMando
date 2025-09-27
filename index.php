@@ -36,8 +36,9 @@ if (isset($_GET['buscar']) && !empty($_GET['buscar'])) {
     <header class="hero-banner">
         <div class="hero-overlay">
             <div class="container text-center">
-                <h1 class="display-1 fw-bold text-white mb-4"><?php echo SITE_NAME; ?></h1>
-                <p class="lead text-white-50">Tu guía definitiva de videojuegos</p>
+                <h1 class="visually-hidden"><?php echo SITE_NAME; ?></h1>
+                <img src="media/rulethemando.png" alt="<?php echo SITE_NAME; ?>" class="hero-image" loading="eager">
+                <p class="lead text-white-50 mt-4">Tu guía definitiva de videojuegos</p>
             </div>
         </div>
     </header>
@@ -71,6 +72,9 @@ if (isset($_GET['buscar']) && !empty($_GET['buscar'])) {
                         <a class="nav-link" href="games.php"><i class="fas fa-list"></i> Juegos</a>
                     </li>
                     <?php if (isLoggedIn()): ?>
+                        <li class="nav-item">
+                            <a class="nav-link" href="favorites.php"><i class="fas fa-trophy"></i> Mis Favoritos</a>
+                        </li>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
                                 <i class="fas fa-user"></i> <?php echo sanitize($_SESSION['username']); ?>

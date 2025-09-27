@@ -9,6 +9,8 @@ if (!isLoggedIn() || !isAdmin()) {
 
 $message = '';
 $success = false;
+$openAddTab = false; // Para abrir el tab de alta cuando haya errores
+$oldAdd = []; // Para repoblar el formulario en caso de error
 
 // Cargar mensajes flash (si existen)
 if (!empty($_SESSION['flash_message'])) {
@@ -24,6 +26,7 @@ if (!file_exists(UPLOAD_PATH)) {
 
 // Procesar formulario de añadir juego
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_game'])) {
+    $oldAdd = $_POST; // guardar valores enviados
     $titulo = sanitize($_POST['titulo']);
     $descripcion = sanitize($_POST['descripcion']);
     $fecha_lanzamiento = $_POST['fecha_lanzamiento'];
@@ -36,20 +39,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_game'])) {
     // Manejar subida de imagen
     $imagen = '';
     if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] === UPLOAD_ERR_OK) {
-        $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+        $allowedExt = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+        $allowedMime = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        $maxSize = 5 * 1024 * 1024; // 5MB
         $filename = $_FILES['imagen']['name'];
         $filetype = pathinfo($filename, PATHINFO_EXTENSION);
 
-        if (in_array(strtolower($filetype), $allowed)) {
-            $imagen = uniqid() . '.' . $filetype;
-            $upload_path = UPLOAD_PATH . $imagen;
+        // Validación por extensión
+        if (!in_array(strtolower($filetype), $allowedExt)) {
+            $message = 'Formato de imagen no válido. Usa JPG, PNG, GIF o WebP.';
+        }
 
+        // Validación por tamaño
+        if (empty($message) && $_FILES['imagen']['size'] > $maxSize) {
+            $message = 'La imagen supera el tamaño máximo de 5MB.';
+        }
+
+        // Validación por MIME real
+        if (empty($message)) {
+            $finfo = function_exists('finfo_open') ? finfo_open(FILEINFO_MIME_TYPE) : null;
+            $mime = $finfo ? finfo_file($finfo, $_FILES['imagen']['tmp_name']) : null;
+            if ($finfo) { finfo_close($finfo); }
+            if ($mime && !in_array($mime, $allowedMime)) {
+                $message = 'El archivo no parece ser una imagen válida.';
+            }
+        }
+
+        if (empty($message)) {
+            $imagen = uniqid('', true) . '.' . strtolower($filetype);
+            $upload_path = UPLOAD_PATH . $imagen;
             if (!move_uploaded_file($_FILES['imagen']['tmp_name'], $upload_path)) {
                 $imagen = '';
                 $message = 'Error al subir la imagen.';
             }
-        } else {
-            $message = 'Formato de imagen no válido. Usa JPG, PNG, GIF o WebP.';
+        }
+    }
+
+    // Validación mínima de campos requeridos
+    if (empty($message)) {
+        if ($titulo === '' || $descripcion === '' || empty($fecha_lanzamiento) || $plataforma === '' || $genero === '' || $desarrollador === '') {
+            $message = 'Por favor, completa todos los campos obligatorios.';
         }
     }
 
@@ -82,6 +111,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_game'])) {
         } else {
             $message = 'Error al añadir el juego.';
         }
+    }
+
+    // Si hay error, mostrar tab de alta y mantener valores
+    if (!empty($message)) {
+        $openAddTab = true;
     }
 }
 
@@ -385,22 +419,22 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         <ul class="sidebar-nav">
             <li class="sidebar-nav-item">
-                <a href="#dashboard" class="sidebar-nav-link active" data-bs-toggle="tab">
+                <a href="#dashboard" class="sidebar-nav-link active">
                     <i class="fas fa-tachometer-alt me-2"></i>Dashboard
                 </a>
             </li>
             <li class="sidebar-nav-item">
-                <a href="#add-game" class="sidebar-nav-link" data-bs-toggle="tab">
+                <a href="#add-game" class="sidebar-nav-link">
                     <i class="fas fa-plus me-2"></i>Añadir Juego
                 </a>
             </li>
             <li class="sidebar-nav-item">
-                <a href="#manage-games" class="sidebar-nav-link" data-bs-toggle="tab">
+                <a href="#manage-games" class="sidebar-nav-link">
                     <i class="fas fa-list me-2"></i>Gestionar Juegos
                 </a>
             </li>
             <li class="sidebar-nav-item">
-                <a href="#manage-users" class="sidebar-nav-link" data-bs-toggle="tab">
+                <a href="#manage-users" class="sidebar-nav-link">
                     <i class="fas fa-users me-2"></i>Gestionar Usuarios
                 </a>
             </li>
@@ -561,13 +595,14 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     <h4 class="mb-0"><i class="fas fa-plus me-2"></i>Añadir Nuevo Juego</h4>
                                 </div>
                                 <div class="card-body">
-                                    <form method="POST" enctype="multipart/form-data" class="needs-validation"
+                                    <form method="POST" enctype="multipart/form-data" id="addGameForm" class="needs-validation <?php echo $openAddTab ? 'was-validated' : ''; ?>"
                                         novalidate>
+                                        <input type="hidden" name="add_game" value="1">
                                         <div class="row">
                                             <div class="col-md-6">
                                                 <div class="form-floating mb-3">
                                                     <input type="text" class="form-control" id="titulo" name="titulo"
-                                                        placeholder="Título" required>
+                                                        placeholder="Título" required value="<?php echo htmlspecialchars($oldAdd['titulo'] ?? ''); ?>">
                                                     <label for="titulo">Título del Juego</label>
                                                     <div class="invalid-feedback">Por favor, ingresa el título del
                                                         juego.</div>
@@ -576,7 +611,7 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                             <div class="col-md-6">
                                                 <div class="form-floating mb-3">
                                                     <input type="text" class="form-control" id="desarrollador"
-                                                        name="desarrollador" placeholder="Desarrollador" required>
+                                                        name="desarrollador" placeholder="Desarrollador" required value="<?php echo htmlspecialchars($oldAdd['desarrollador'] ?? ''); ?>">
                                                     <label for="desarrollador">Desarrollador</label>
                                                     <div class="invalid-feedback">Por favor, ingresa el desarrollador.
                                                     </div>
@@ -586,7 +621,7 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                                         <div class="form-floating mb-3">
                                             <textarea class="form-control" id="descripcion" name="descripcion"
-                                                style="height: 100px" placeholder="Descripción" required></textarea>
+                                                style="height: 100px" placeholder="Descripción" required><?php echo htmlspecialchars($oldAdd['descripcion'] ?? ''); ?></textarea>
                                             <label for="descripcion">Descripción</label>
                                             <div class="invalid-feedback">Por favor, ingresa una descripción.</div>
                                         </div>
@@ -595,7 +630,7 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                             <div class="col-md-4">
                                                 <div class="form-floating mb-3">
                                                     <input type="date" class="form-control" id="fecha_lanzamiento"
-                                                        name="fecha_lanzamiento" required>
+                                                        name="fecha_lanzamiento" required value="<?php echo htmlspecialchars($oldAdd['fecha_lanzamiento'] ?? ''); ?>">
                                                     <label for="fecha_lanzamiento">Fecha de Lanzamiento</label>
                                                     <div class="invalid-feedback">Por favor, selecciona la fecha de
                                                         lanzamiento.</div>
@@ -603,7 +638,7 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                             </div>
                                             <div class="col-md-4">
                                                 <div class="form-floating mb-3">
-                                                    <input list="plataformasList" class="form-control" id="plataforma" name="plataforma" placeholder="Plataforma" required>
+                                                    <input list="plataformasList" class="form-control" id="plataforma" name="plataforma" placeholder="Plataforma" required value="<?php echo htmlspecialchars($oldAdd['plataforma'] ?? ''); ?>">
                                                     <label for="plataforma">Plataforma</label>
                                                     <datalist id="plataformasList">
                                                         <?php
@@ -616,7 +651,7 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                             </div>
                                             <div class="col-md-4">
                                                 <div class="form-floating mb-3">
-                                                    <input list="generosList" class="form-control" id="genero" name="genero" placeholder="Género" required>
+                                                    <input list="generosList" class="form-control" id="genero" name="genero" placeholder="Género" required value="<?php echo htmlspecialchars($oldAdd['genero'] ?? ''); ?>">
                                                     <label for="genero">Género</label>
                                                     <datalist id="generosList">
                                                         <?php
@@ -633,7 +668,7 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                             <div class="col-md-6">
                                                 <div class="form-floating mb-3">
                                                     <input type="number" step="0.01" class="form-control" id="precio"
-                                                        name="precio" placeholder="Precio">
+                                                        name="precio" placeholder="Precio" value="<?php echo htmlspecialchars($oldAdd['precio'] ?? ''); ?>">
                                                     <label for="precio">Precio (€)</label>
                                                 </div>
                                             </div>
@@ -650,7 +685,7 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                                         <div class="form-check mb-4">
                                             <input class="form-check-input" type="checkbox" id="es_futuro_lanzamiento"
-                                                name="es_futuro_lanzamiento">
+                                                name="es_futuro_lanzamiento" <?php echo !empty($oldAdd['es_futuro_lanzamiento']) ? 'checked' : ''; ?>>
                                             <label class="form-check-label" for="es_futuro_lanzamiento">
                                                 <strong>Es un futuro lanzamiento</strong>
                                                 <small class="text-muted d-block">Marcar si el juego aún no se ha
@@ -659,7 +694,7 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         </div>
 
                                         <div class="d-grid gap-2">
-                                            <button type="submit" name="add_game" class="btn btn-primary btn-lg">
+                                            <button type="submit" name="add_game" value="1" class="btn btn-primary btn-lg">
                                                 <i class="fas fa-plus me-2"></i>Añadir Juego
                                             </button>
                                         </div>
@@ -965,22 +1000,30 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
             }, false);
         })();
 
-        // Manejar tabs del sidebar
-        document.querySelectorAll('.sidebar-nav-link[data-bs-toggle="tab"]').forEach(function (tab) {
+        // Manejo manual de tabs del sidebar (evita errores del plugin de Bootstrap en esta estructura personalizada)
+        function showTabByHash(hash) {
+            var target = document.querySelector(hash);
+            if (!target) return;
+            // desactivar panes
+            document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('show','active'); });
+            // activar objetivo
+            target.classList.add('active','show');
+            // actualizar estado de enlaces
+            document.querySelectorAll('.sidebar-nav-link').forEach(function (link) {
+                link.classList.toggle('active', link.getAttribute('href') === hash);
+            });
+        }
+
+        document.querySelectorAll('.sidebar-nav-link[href^="#"]').forEach(function (tab) {
             tab.addEventListener('click', function (e) {
                 e.preventDefault();
-
-                // Remover clase active de todos los enlaces
-                document.querySelectorAll('.sidebar-nav-link').forEach(function (link) {
-                    link.classList.remove('active');
-                });
-
-                // Añadir clase active al enlace clickeado
-                this.classList.add('active');
-
-                // Mostrar el tab correspondiente
-                var targetTab = new bootstrap.Tab(this);
-                targetTab.show();
+                var hash = this.getAttribute('href');
+                showTabByHash(hash);
+                if (history.replaceState) {
+                    history.replaceState(null, '', hash);
+                } else {
+                    location.hash = hash;
+                }
             });
         });
 
@@ -988,12 +1031,7 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 (function(){
                     var hash = window.location.hash;
                     if (hash) {
-                        var link = document.querySelector('.sidebar-nav a[href="' + hash + '"]');
-                        if (link) {
-                            document.querySelectorAll('.sidebar-nav-link').forEach(function (l) { l.classList.remove('active'); });
-                            link.classList.add('active');
-                            var tab = new bootstrap.Tab(link); tab.show();
-                        }
+                        showTabByHash(hash);
                     }
                 })();
 
@@ -1129,11 +1167,35 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
             });
         }, 5000);
     </script>
+    <?php if ($openAddTab): ?>
+    <script>
+        document.addEventListener('DOMContentLoaded', function(){
+            // Mostrar pestaña de alta
+            (window.showTabByHash || function(){})();
+            var hash = '#add-game';
+            var target = document.querySelector(hash);
+            if (target) {
+                document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('show','active'); });
+                target.classList.add('active','show');
+                document.querySelectorAll('.sidebar-nav-link').forEach(function (link) { link.classList.toggle('active', link.getAttribute('href') === hash); });
+            }
+            // scroll al formulario por si hay mensajes
+            var form = document.getElementById('addGameForm');
+            if (form) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    </script>
+    <?php endif; ?>
         <?php if (isset($_GET['edit']) && is_numeric($_GET['edit'])): ?>
         <script>
             document.addEventListener('DOMContentLoaded', function(){
-                var link = document.querySelector('.sidebar-nav a[href="#manage-games"]');
-                if (link) { var t = new bootstrap.Tab(link); t.show(); link.classList.add('active'); }
+                // Mostrar pestaña gestionar juegos manualmente
+                var hash = '#manage-games';
+                var target = document.querySelector(hash);
+                if (target) {
+                    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('show','active'); });
+                    target.classList.add('active','show');
+                    document.querySelectorAll('.sidebar-nav-link').forEach(function (link) { link.classList.toggle('active', link.getAttribute('href') === hash); });
+                }
                 var id = '<?php echo (int)$_GET['edit']; ?>';
                 var btn = document.querySelector('button[data-bs-target="#editModal"][data-id="' + id + '"]');
                 if (btn) { btn.click(); }
