@@ -7,7 +7,7 @@ define('DB_NAME', 'rjrbio_rule');
 
 // Configuración de la aplicación
 define('SITE_NAME', 'Rule the Mando');
-define('SITE_URL', 'http://localhost/rule_the_mando');
+define('SITE_URL', 'http://localhost:8080');
 define('UPLOAD_PATH', 'uploads/');
 
 // Configuración de sesión

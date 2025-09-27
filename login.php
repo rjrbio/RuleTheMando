@@ -1,5 +1,6 @@
 <?php
 require_once 'config.php';
+require_once 'supabase-config.php';
 
 $error = '';
 $success = '';
@@ -29,16 +30,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
         $stmt->execute([$username]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if ($user && password_verify($password, $user['password'])) {
-            if (!$user['email_verified']) {
-                $error = 'Debes verificar tu email antes de iniciar sesión. <a href="resend-verification.php?email=' . urlencode($user['email']) . '">Reenviar email de verificación</a>';
+        if ($user) {
+            $passwordOk = false;
+            
+            // 1) Intento normal con hash (bcrypt/argon2)
+            if (password_verify($password, $user['password'])) {
+                $passwordOk = true;
             } else {
-                $_SESSION['user_id'] = $user['id'];
-                $_SESSION['username'] = $user['username'];
-                $_SESSION['email'] = $user['email'];
-                $_SESSION['role'] = $user['role'];
+                // 2) Si el valor almacenado NO parece hash y coincide exactamente con lo introducido, lo re-hasheamos (upgrade)
+                $looksHashed = preg_match('/^\$2[ayb]\$/', (string)$user['password']) || preg_match('/^\$argon2(id|i|d)\$/', (string)$user['password']);
+                if (!$looksHashed && hash_equals((string)$user['password'], (string)$password)) {
+                    // Actualizar a hash seguro
+                    $newHash = password_hash($password, PASSWORD_DEFAULT);
+                    $upd = $pdo->prepare('UPDATE usuarios SET password = ? WHERE id = ?');
+                    if ($upd->execute([$newHash, $user['id']])) {
+                        $passwordOk = true;
+                    }
+                }
+            }
 
-                redirect('index.php');
+            if ($passwordOk) {
+                // Permitir acceso a administradores aunque no tengan email verificado
+                $requiresVerification = (!$user['email_verified']) && ($user['role'] !== 'admin');
+                if ($requiresVerification) {
+                    $error = 'Debes verificar tu email antes de iniciar sesión. <a href="resend-verification.php?email=' . urlencode($user['email']) . '">Reenviar email de verificación</a>';
+                } else {
+                    $_SESSION['user_id'] = $user['id'];
+                    $_SESSION['username'] = $user['username'];
+                    $_SESSION['email'] = $user['email'];
+                    $_SESSION['role'] = $user['role'];
+                    redirect('index.php');
+                }
+            } else {
+                $error = 'Nombre de usuario o contraseña incorrectos.';
             }
         } else {
             $error = 'Nombre de usuario o contraseña incorrectos.';
@@ -69,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = 'El email no es válido.';
     } else {
-        // Verificar si el usuario ya existe
+        // Verificar si el username ya existe
         $stmt = $pdo->prepare("SELECT id FROM usuarios WHERE username = ?");
         $stmt->execute([$username]);
         
@@ -91,11 +115,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
                 $stmt = $pdo->prepare("INSERT INTO usuarios (username, email, password, verification_token, verification_expires) VALUES (?, ?, ?, ?, ?)");
 
                 if ($stmt->execute([$username, $email, $hashed_password, $verification_token, $verification_expires])) {
-                    // Enviar email de verificación
-                    if (sendVerificationEmail($email, $username, $verification_token)) {
-                        $success = 'Registro exitoso. Se ha enviado un email de verificación a tu dirección de correo.';
+                    // Registrar también en Supabase para gestión de emails
+                    $supabaseResponse = registerSupabaseUser($email, $password, [
+                        'username' => $username,
+                        'local_user_id' => $pdo->lastInsertId()
+                    ]);
+                    
+                    if ($supabaseResponse['success']) {
+                        // Supabase ya envió automáticamente el email de verificación
+                        // Verificar si tiene confirmation_sent_at
+                        if (isset($supabaseResponse['data']['confirmation_sent_at'])) {
+                            $success = 'Registro exitoso. Se ha enviado un email de verificación a tu dirección de correo vía Supabase. Revisa también tu carpeta de spam.';
+                        } else {
+                            // Si no se envió automáticamente, intentar manual
+                            $emailResponse = sendSupabaseVerificationEmail($email, SITE_URL . '/verify-supabase.php');
+                            
+                            if ($emailResponse['success']) {
+                                $success = 'Registro exitoso. Se ha enviado un email de verificación a tu dirección de correo.';
+                            } else {
+                                $error = 'Usuario creado, pero hubo un error al enviar el email de verificación. <a href="resend-verification.php?email=' . urlencode($email) . '">Reenviar</a>';
+                            }
+                        }
                     } else {
-                        $error = 'Usuario creado, pero hubo un error al enviar el email de verificación. <a href="resend-verification.php?email=' . urlencode($email) . '">Reenviar</a>';
+                        // Fallback al sistema local si Supabase falla
+                        if (sendVerificationEmailLocal($email, $username, $verification_token)) {
+                            $success = 'Registro exitoso. Se ha enviado un email de verificación usando el sistema local.';
+                        } else {
+                            $error = 'Usuario creado, pero hubo un error con supabase. <a href="resend-verification.php?email=' . urlencode($email) . '">Reenviar</a>';
+                        }
                     }
                 } else {
                     $error = 'Error al crear el usuario. Inténtalo de nuevo.';
@@ -105,8 +152,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
     }
 }
 
-// Función para enviar email de verificación
-function sendVerificationEmail($email, $username, $token)
+// Función para enviar email de verificación local (fallback)
+function sendVerificationEmailLocal($email, $username, $token)
 {
     // Aquí integrarías PHPMailer o tu servicio de email preferido
     // Por ahora, simularemos el envío
@@ -160,24 +207,10 @@ function sendVerificationEmail($email, $username, $token)
     $log_entry = date('Y-m-d H:i:s') . " - Email to: $email\n";
     $log_entry .= "Subject: $subject\n";
     $log_entry .= "Verification Link: $verification_link\n";
-    $log_entry .= "Username: $username\n";
     $log_entry .= "---\n\n";
     file_put_contents('email_log.txt', $log_entry, FILE_APPEND);
 
-    // Para desarrollo local: simular envío exitoso
-    // En producción, reemplazar con: return mail($email, $subject, $message, $headers);
-    // o mejor aún, usar PHPMailer con SMTP
-    
-    // Verificar si estamos en localhost (desarrollo)
-    $isLocalhost = (strpos(SITE_URL, 'localhost') !== false || strpos(SITE_URL, '127.0.0.1') !== false);
-    
-    if ($isLocalhost) {
-        // En desarrollo local, simular envío exitoso
-        return true;
-    } else {
-        // En producción, intentar enviar con mail()
-        return mail($email, $subject, $message, $headers);
-    }
+    return mail($email, $subject, $message, $headers);
 }
 ?>
 
@@ -289,14 +322,14 @@ function sendVerificationEmail($email, $username, $token)
                 <?php if ($error): ?>
                     <div class="alert alert-danger">
                         <i class="fas fa-exclamation-circle me-2"></i>
-                        <?php echo render_message($error); ?>
+                        <?php echo $error; ?>
                     </div>
                 <?php endif; ?>
 
                 <?php if ($success): ?>
                     <div class="alert alert-success">
                         <i class="fas fa-check-circle me-2"></i>
-                        <?php echo render_message($success); ?>
+                        <?php echo $success; ?>
                     </div>
                 <?php endif; ?>
 
@@ -361,12 +394,11 @@ function sendVerificationEmail($email, $username, $token)
                                 <div class="col-md-6">
                                     <div class="form-floating mb-3">
                                         <input type="text" class="form-control" id="reg_username" name="reg_username"
-                                            placeholder="Nombre de usuario" required maxlength="50" pattern="[a-zA-Z0-9_-]+">
-                                        <label for="reg_username"><i class="fas fa-user me-2"></i>Nombre de usuario</label>
+                                            placeholder="Usuario" required>
+                                        <label for="reg_username"><i class="fas fa-user me-2"></i>Usuario</label>
                                         <div class="invalid-feedback">
-                                            3-50 caracteres. Solo letras, números, - y _
+                                            Por favor, elige un nombre de usuario.
                                         </div>
-                                        <small class="text-muted">Será usado para hacer login</small>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
@@ -377,7 +409,6 @@ function sendVerificationEmail($email, $username, $token)
                                         <div class="invalid-feedback">
                                             Por favor, ingresa un email válido.
                                         </div>
-                                        <small class="text-muted">Para verificación y notificaciones</small>
                                     </div>
                                 </div>
                             </div>
@@ -453,22 +484,6 @@ function sendVerificationEmail($email, $username, $token)
 
             if (password !== confirmPassword) {
                 this.setCustomValidity('Las contraseñas no coinciden');
-            } else {
-                this.setCustomValidity('');
-            }
-        });
-
-        // Validar username en tiempo real
-        document.getElementById('reg_username').addEventListener('input', function () {
-            const username = this.value;
-            const pattern = /^[a-zA-Z0-9_-]+$/;
-            
-            if (username.length < 3 && username.length > 0) {
-                this.setCustomValidity('El nombre de usuario debe tener al menos 3 caracteres');
-            } else if (username.length > 50) {
-                this.setCustomValidity('El nombre de usuario no puede tener más de 50 caracteres');
-            } else if (username.length > 0 && !pattern.test(username)) {
-                this.setCustomValidity('Solo se permiten letras, números, guiones (-) y guiones bajos (_)');
             } else {
                 this.setCustomValidity('');
             }

@@ -1,10 +1,56 @@
 <?php
 require_once 'config.php';
+require_once 'supabase-config.php';
 
 $message = '';
 $success = false;
 
-// Función local para enviar email de verificación (similar a la de login.php)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' || isset($_GET['email'])) {
+    $email = isset($_POST['email']) ? sanitize($_POST['email']) : sanitize($_GET['email']);
+
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $message = 'Por favor, ingresa un email válido.';
+    } else {
+        // Buscar usuario por email
+        $stmt = $pdo->prepare("SELECT * FROM usuarios WHERE email = ?");
+        $stmt->execute([$email]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$user) {
+            $message = 'No se encontró una cuenta asociada a este email.';
+        } elseif ($user['email_verified']) {
+            $message = 'Este email ya ha sido verificado. Puedes iniciar sesión normalmente.';
+        } else {
+            // Generar nuevo token de verificación
+            $verification_token = bin2hex(random_bytes(32));
+            $verification_expires = date('Y-m-d H:i:s', strtotime('+24 hours'));
+
+            $stmt = $pdo->prepare("UPDATE usuarios SET verification_token = ?, verification_expires = ? WHERE id = ?");
+
+            if ($stmt->execute([$verification_token, $verification_expires, $user['id']])) {
+                // Intentar enviar con Supabase primero
+                $supabaseResponse = sendSupabaseVerificationEmail($email, SITE_URL . '/verify-supabase.php');
+                
+                if ($supabaseResponse['success']) {
+                    $success = true;
+                    $message = 'Se ha enviado un nuevo email de verificación usando Supabase. Revisa tu bandeja de entrada y spam.';
+                } else {
+                    // Fallback al sistema local
+                    if (sendVerificationEmailLocal($email, $user['username'], $verification_token)) {
+                        $success = true;
+                        $message = 'Se ha enviado un nuevo email de verificación usando el sistema local.';
+                    } else {
+                        $message = 'Error al enviar el email. Por favor, inténtalo de nuevo más tarde.';
+                    }
+                }
+            } else {
+                $message = 'Error interno. Por favor, inténtalo de nuevo.';
+            }
+        }
+    }
+}
+
+// Función local para enviar email de verificación (fallback)
 function sendVerificationEmailLocal($email, $username, $token)
 {
     $verification_link = SITE_URL . "/verify-email.php?token=" . $token;
@@ -25,18 +71,21 @@ function sendVerificationEmailLocal($email, $username, $token)
         <div class='container'>
             <div class='header'>
                 <h1>" . SITE_NAME . "</h1>
-                <p>Verificación de cuenta</p>
+                <p>Verificación de email</p>
             </div>
             <div class='content'>
                 <h2>Hola $username,</h2>
-                <p>Solicitaste un nuevo enlace de verificación para tu cuenta en " . SITE_NAME . "</p>
+                <p>Has solicitado un nuevo enlace de verificación para tu cuenta en " . SITE_NAME . ". Haz clic en el botón de abajo para verificar tu email:</p>
                 <p style='text-align: center;'>
                     <a href='$verification_link' class='button'>Verificar Email</a>
                 </p>
-                <p>Si no solicitaste este email, puedes ignorar este mensaje.</p>
+                <p>O copia y pega este enlace en tu navegador:</p>
+                <p style='word-break: break-all; background: #e2e8f0; padding: 10px; border-radius: 5px;'>$verification_link</p>
+                <p><strong>Este enlace expira en 24 horas.</strong></p>
+                <p>Si no solicitaste este enlace, puedes ignorar este email.</p>
             </div>
             <div class='footer'>
-                <p>&copy; " . date('Y') . " " . SITE_NAME . ".</p>
+                <p>&copy; 2024 " . SITE_NAME . ". Todos los derechos reservados.</p>
             </div>
         </div>
     </body>
@@ -47,110 +96,150 @@ function sendVerificationEmailLocal($email, $username, $token)
     $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
     $headers .= "From: " . SITE_NAME . " <noreply@rulethemando.com>" . "\r\n";
 
-    // Log para pruebas locales
-    $log_entry = date('Y-m-d H:i:s') . " - Resend verification email to: $email\n";
+    // Log para testing
+    $log_entry = date('Y-m-d H:i:s') . " - RESEND Email to: $email\n";
+    $log_entry .= "Subject: $subject\n";
     $log_entry .= "Verification Link: $verification_link\n";
-    $log_entry .= "Username: $username\n";
     $log_entry .= "---\n\n";
     file_put_contents('email_log.txt', $log_entry, FILE_APPEND);
 
-    // Para desarrollo local: simular envío exitoso
-    // Verificar si estamos en localhost (desarrollo)
-    $isLocalhost = (strpos(SITE_URL, 'localhost') !== false || strpos(SITE_URL, '127.0.0.1') !== false);
-    
-    if ($isLocalhost) {
-        // En desarrollo local, simular envío exitoso
-        return true;
-    } else {
-        // En producción, intentar enviar con mail()
-        return mail($email, $subject, $message, $headers);
-    }
-}
-
-// Manejo de entrada: permitir GET (enlaces existentes) o POST desde formulario
-$inputEmail = '';
-if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['email'])) {
-    $inputEmail = sanitize($_GET['email']);
-} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['email'])) {
-    $inputEmail = sanitize($_POST['email']);
-}
-
-if ($inputEmail) {
-    if (!filter_var($inputEmail, FILTER_VALIDATE_EMAIL)) {
-        $message = 'Email inválido.';
-    } else {
-        $stmt = $pdo->prepare('SELECT id, username, email_verified FROM usuarios WHERE email = ?');
-        $stmt->execute([$inputEmail]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if (!$user) {
-            $message = 'No existe una cuenta con ese email.';
-        } elseif ($user['email_verified']) {
-            $message = 'El email ya está verificado. Puedes iniciar sesión.';
-        } else {
-            // Generar nuevo token y expiración
-            try {
-                $verification_token = bin2hex(random_bytes(32));
-            } catch (Exception $e) {
-                $message = 'Error generando token. Intenta de nuevo.';
-            }
-
-            if (empty($message)) {
-                $verification_expires = date('Y-m-d H:i:s', strtotime('+24 hours'));
-                $stmt = $pdo->prepare('UPDATE usuarios SET verification_token = ?, verification_expires = ? WHERE id = ?');
-                if ($stmt->execute([$verification_token, $verification_expires, $user['id']])) {
-                    if (sendVerificationEmailLocal($inputEmail, $user['username'], $verification_token)) {
-                        $success = true;
-                        $message = 'Se ha enviado un nuevo email de verificación a tu dirección.';
-                    } else {
-                        $message = 'No se pudo enviar el email de verificación. Inténtalo más tarde.';
-                    }
-                } else {
-                    $message = 'Error interno al actualizar el usuario.';
-                }
-            }
-        }
-    }
+    return mail($email, $subject, $message, $headers);
 }
 ?>
 
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
+
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Reenviar verificación - <?php echo SITE_NAME; ?></title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reenviar Verificación - <?php echo SITE_NAME; ?></title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="styles.css" rel="stylesheet">
+    <style>
+        .resend-container {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .resend-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            padding: 3rem 2rem;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .resend-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            color: white;
+            font-size: 2rem;
+        }
+
+        .btn-resend {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border: none;
+            padding: 12px 0;
+            font-weight: 600;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-resend:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4);
+        }
+    </style>
 </head>
+
 <body>
-    <div class="container" style="padding: 40px 0;">
-        <div class="row justify-content-center">
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-body text-center">
-                        <h3 class="mb-3">Reenviar email de verificación</h3>
-
-                        <?php if ($message): ?>
-                            <div class="alert <?php echo $success ? 'alert-success' : 'alert-danger'; ?>">
-                                <?php echo htmlspecialchars($message); ?>
-                            </div>
-                        <?php endif; ?>
-
-                        <?php if (!$success): ?>
-                            <form method="post" class="mb-3">
-                                <div class="mb-3">
-                                    <input type="email" name="email" class="form-control" placeholder="Tu email" required value="<?php echo htmlspecialchars($inputEmail); ?>">
-                                </div>
-                                <button type="submit" class="btn btn-primary w-100">Enviar enlace de verificación</button>
-                            </form>
-                        <?php endif; ?>
-
-                        <a href="login.php" class="btn btn-outline-secondary mt-2">Volver al login</a>
-                    </div>
+    <div class="resend-container">
+        <div class="resend-card">
+            <div class="text-center mb-4">
+                <div class="resend-icon">
+                    <i class="fas fa-envelope"></i>
                 </div>
+                <h2 class="fw-bold mb-3">Reenviar Verificación</h2>
+                <p class="text-muted">Ingresa tu email para recibir un nuevo enlace de verificación</p>
+            </div>
+
+            <?php if ($message): ?>
+                <div class="alert <?php echo $success ? 'alert-success' : 'alert-danger'; ?> mb-4">
+                    <i class="fas <?php echo $success ? 'fa-check-circle' : 'fa-exclamation-circle'; ?> me-2"></i>
+                    <?php echo $message; ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if (!$success): ?>
+                <form method="POST" class="needs-validation" novalidate>
+                    <div class="form-floating mb-4">
+                        <input type="email" class="form-control" id="email" name="email" placeholder="Email" required
+                            value="<?php echo isset($_GET['email']) ? htmlspecialchars($_GET['email']) : ''; ?>">
+                        <label for="email"><i class="fas fa-envelope me-2"></i>Email</label>
+                        <div class="invalid-feedback">
+                            Por favor, ingresa un email válido.
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-resend w-100 mb-3">
+                        <i class="fas fa-paper-plane me-2"></i>Reenviar Verificación
+                    </button>
+                </form>
+            <?php endif; ?>
+
+            <div class="text-center">
+                <a href="login.php" class="btn btn-outline-secondary me-2">
+                    <i class="fas fa-arrow-left me-2"></i>Volver al Login
+                </a>
+
+                <?php if ($success): ?>
+                    <a href="login.php" class="btn btn-primary btn-resend">
+                        <i class="fas fa-sign-in-alt me-2"></i>Ir al Login
+                    </a>
+                <?php endif; ?>
+            </div>
+
+            <div class="text-center mt-4">
+                <small class="text-muted">
+                    ¿No recibes el email? Revisa tu carpeta de spam o
+                    <a href="mailto:support@rulethemando.com" class="text-decoration-none">contacta soporte</a>
+                </small>
             </div>
         </div>
     </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Validación de formulario
+        (function () {
+            'use strict';
+            window.addEventListener('load', function () {
+                var forms = document.getElementsByClassName('needs-validation');
+                var validation = Array.prototype.filter.call(forms, function (form) {
+                    form.addEventListener('submit', function (event) {
+                        if (form.checkValidity() === false) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }
+                        form.classList.add('was-validated');
+                    }, false);
+                });
+            }, false);
+        })();
+    </script>
 </body>
+
 </html>
