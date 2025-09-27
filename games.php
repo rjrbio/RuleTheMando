@@ -262,7 +262,7 @@ $generos = $pdo->query("SELECT DISTINCT genero FROM videojuegos WHERE genero IS 
                         <div class="col-6"><small><strong>Género:</strong> <?php echo sanitize($juego['genero']); ?></small></div>
                         <div class="col-6"><small><strong>Desarrollador:</strong> <?php echo sanitize($juego['desarrollador']); ?></small></div>
                         <div class="col-6">
-                          <small><strong>Precio:</strong> <?php echo $juego['precio'] ? '€' . number_format($juego['precio'], 2) : '-'; ?></small>
+                          <small><strong>Precio:</strong> <?php echo $juego['precio'] ? '<span class="price-badge">€' . number_format($juego['precio'], 2) . '</span>' : '-'; ?></small>
                         </div>
                       </div>
                     </div>
@@ -273,8 +273,10 @@ $generos = $pdo->query("SELECT DISTINCT genero FROM videojuegos WHERE genero IS 
                       </a>
                       <span class="ms-auto align-self-center small text-muted">
                         <i class="fas fa-star text-warning"></i>
-                        <?php echo $juego['avg_rating'] ? number_format((float)$juego['avg_rating'], 1) : '-'; ?>
-                        (<?php echo (int)$juego['votes']; ?>)
+                        <?php echo !$juego['es_futuro_lanzamiento'] && $juego['avg_rating'] ? number_format((float)$juego['avg_rating'], 1) : '-'; ?>
+                        <?php if (!$juego['es_futuro_lanzamiento']): ?>
+                          (<?php echo (int)$juego['votes']; ?>)
+                        <?php endif; ?>
                       </span>
                       <?php if (isAdmin()): ?>
                         <a class="btn btn-outline-secondary btn-sm" href="admin.php?edit=<?php echo (int)$juego['id']; ?>#manage-games" title="Editar en panel admin">

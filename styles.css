@@ -1,11 +1,15 @@
 /* Variables CSS */
 :root {
-    --primary-color: #6366f1;
-    --secondary-color: #8b5cf6;
-    --accent-color: #f59e0b;
-    --dark-color: #1f2937;
-    --light-color: #f8fafc;
-    --text-muted: #64748b;
+    /* Paleta cálida/alegre */
+    --primary-color: #ff7a18;      /* Naranja vivo */
+    --secondary-color: #06b6d4;    /* Teal/Cyan contraste */
+    --accent-color: #ff8f2d;       /* Naranja acento */
+    --accent-color-2: #7c3aed;     /* Violeta contraste */
+    --success-color: #10b981;      /* Verde éxito */
+    --success-color-2: #059669;    /* Verde éxito profundo */
+    --dark-color: #1f2937;         /* Neutro oscuro para textos */
+    --light-color: #fffaf5;        /* Fondo claro cálido */
+    --text-muted: #6b7280;
     --border-radius: 12px;
     --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     --transition: all 0.3s ease;
@@ -26,11 +30,12 @@ body {
 /* Banner Hero */
 .hero-banner {
     height: 60vh;
-    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    background: #0b1220; /* neutral background in case image fails */
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
 }
 
 .hero-overlay {
@@ -39,10 +44,11 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, rgba(15, 23, 42, 0.4), rgba(15, 23, 42, 0.4));
     display: flex;
     align-items: center;
     justify-content: center;
+    z-index: 1;
+    will-change: transform;
 }
 
 .hero-banner h1 {
@@ -52,12 +58,14 @@ body {
 
 /* Imagen principal del hero */
 .hero-image {
-    width: min(100%, 1100px);
-    height: auto;
-    max-height: 75vh;
-    object-fit: contain;
-    filter: drop-shadow(0 12px 24px rgba(0,0,0,.35));
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
     animation: fadeInUp 0.8s ease-out;
+    will-change: transform;
 }
 
 @keyframes fadeInUp {
@@ -73,6 +81,11 @@ body {
 }
 
 /* Navbar personalizada */
+.navbar-dark.bg-dark {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)) !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+}
+
 .navbar-dark .navbar-brand {
     color: #fff;
     font-size: 1.5rem;
@@ -84,7 +97,37 @@ body {
 }
 
 .navbar-dark .navbar-nav .nav-link:hover {
-    color: var(--accent-color);
+    color: #fff;
+}
+
+.navbar-dark .navbar-nav .nav-link.active,
+.navbar-dark .navbar-nav .nav-link:focus,
+.navbar-dark .navbar-nav .show > .nav-link {
+    color: #fff;
+    position: relative;
+}
+.navbar-dark .navbar-nav .nav-link.active::after,
+.navbar-dark .navbar-nav .show > .nav-link::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -6px;
+    height: 3px;
+    background: #fff;
+    border-radius: 2px;
+}
+
+/* Botones outline acorde a paleta */
+.btn-outline-primary {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+.btn-outline-primary:hover,
+.btn-outline-primary:focus {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: #fff;
 }
 
 /* Tarjetas de juegos */
@@ -208,6 +251,21 @@ body {
     border-radius: 20px;
 }
 
+/* Badges específicas */
+.badge-upcoming {
+    background: linear-gradient(135deg, var(--accent-color), var(--secondary-color));
+    color: #fff;
+}
+.badge-available {
+    background: linear-gradient(135deg, var(--success-color), var(--success-color-2));
+    color: #fff;
+}
+
+/* Ajuste a badge primaria de Bootstrap con nuestra paleta */
+.badge.bg-primary {
+    background: linear-gradient(135deg, var(--accent-color-2), var(--secondary-color)) !important;
+}
+
 /* Detalles del juego */
 .game-details p {
     font-size: 0.95rem;
@@ -273,7 +331,7 @@ footer h5 {
 .btn {
     border-radius: 8px;
     font-weight: 500;
-    transition: var(--transition);
+    transition: background-color .25s ease, color .25s ease, border-color .25s ease, box-shadow .25s ease, filter .25s ease, transform .2s ease;
 }
 
 .btn-primary {
@@ -284,6 +342,28 @@ footer h5 {
 .btn-primary:hover {
     background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
     transform: translateY(-2px);
+    filter: brightness(1.05);
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, var(--accent-color), var(--secondary-color));
+    border: none;
+    color: #fff;
+}
+.btn-secondary:hover {
+    filter: brightness(1.05);
+    transform: translateY(-1px);
+}
+
+.btn-outline-secondary {
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+}
+.btn-outline-secondary:hover,
+.btn-outline-secondary:focus {
+    background-color: var(--accent-color);
+    border-color: var(--accent-color);
+    color: #fff;
 }
 
 /* Alertas personalizadas */
@@ -293,14 +373,23 @@ footer h5 {
 }
 
 .alert-info {
-    background: linear-gradient(135deg, #dbeafe, #bfdbfe);
-    color: #1e40af;
+    background: linear-gradient(135deg, #e0f7ff, #c7eef9);
+    color: #0e7490;
+}
+
+/* Precio como badge */
+.price-badge {
+    background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+    color: #fff;
+    border-radius: 999px;
+    padding: 0.3rem 0.6rem;
+    font-weight: 700;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
     .hero-banner {
-        height: 36vh;
+        height: 60vh;
     }
 
     .hero-banner h1 {

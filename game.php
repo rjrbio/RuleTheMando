@@ -31,7 +31,14 @@ if (isLoggedIn() && $_SERVER['REQUEST_METHOD'] === 'POST') {
   if (isset($_POST['set_rating'])) {
     $rid = isset($_POST['game_id']) ? (int)$_POST['game_id'] : 0;
     $rval = isset($_POST['rating']) ? (int)$_POST['rating'] : 0;
-    if ($rid > 0 && $rval >= 1 && $rval <= 10) {
+    // bloquear valoraciones si es futuro lanzamiento
+    $isUpcoming = false;
+    if ($rid > 0) {
+      $chk = $pdo->prepare('SELECT es_futuro_lanzamiento FROM videojuegos WHERE id=?');
+      $chk->execute([$rid]);
+      $isUpcoming = (bool)$chk->fetchColumn();
+    }
+    if ($rid > 0 && !$isUpcoming && $rval >= 1 && $rval <= 10) {
       $stmt = $pdo->prepare('REPLACE INTO valoraciones (user_id, game_id, rating, updated_at) VALUES (?, ?, ?, NOW())');
       $stmt->execute([$uid, $rid, $rval]);
     }
@@ -42,7 +49,15 @@ if (isLoggedIn() && $_SERVER['REQUEST_METHOD'] === 'POST') {
   if (isset($_POST['fav_action'])) {
     $gid = isset($_POST['game_id']) ? (int)$_POST['game_id'] : 0;
     if ($gid > 0) {
+      // comprobar si es futuro lanzamiento
+      $chk = $pdo->prepare('SELECT es_futuro_lanzamiento FROM videojuegos WHERE id=?');
+      $chk->execute([$gid]);
+      $isUpcoming = (bool)$chk->fetchColumn();
       if ($_POST['fav_action'] === 'add') {
+        if ($isUpcoming) { // no permitir añadir si es futuro lanzamiento
+          $target = isset($_GET['slug']) ? ('game.php?slug=' . urlencode($_GET['slug'])) : ('game.php?id=' . (int)$gid);
+          redirect($target);
+        }
         // determinar siguiente posición libre
         $maxStmt = $pdo->prepare('SELECT COALESCE(MAX(posicion),0)+1 FROM favoritos WHERE user_id = ?');
         $maxStmt->execute([$uid]);
@@ -106,21 +121,27 @@ if (!$juego) {
 
 // Juegos relacionados (mismo género o plataforma, excluyendo el actual)
 $relStmt = $pdo->prepare('SELECT id, titulo, imagen, genero, plataforma FROM videojuegos WHERE id <> ? AND (genero = ? OR plataforma = ?) ORDER BY created_at DESC LIMIT 6');
-$relStmt->execute([$id, $juego['genero'], $juego['plataforma']]);
+$relStmt->execute([(int)$juego['id'], $juego['genero'], $juego['plataforma']]);
 $relacionados = $relStmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Nota de la comunidad y estado del usuario
 $avg = null; $cnt = 0; $myRating = null; $isFav = false; $favPos = null;
 try {
-  $s = $pdo->prepare('SELECT ROUND(AVG(rating),1) avg_rating, COUNT(*) c FROM valoraciones WHERE game_id=?');
-  $s->execute([$juego['id']]);
-  $row = $s->fetch(PDO::FETCH_ASSOC); if ($row) { $avg = $row['avg_rating']; $cnt = (int)$row['c']; }
+  if (!$juego['es_futuro_lanzamiento']) {
+    $s = $pdo->prepare('SELECT ROUND(AVG(rating),1) avg_rating, COUNT(*) c FROM valoraciones WHERE game_id=?');
+    $s->execute([$juego['id']]);
+    $row = $s->fetch(PDO::FETCH_ASSOC); if ($row) { $avg = $row['avg_rating']; $cnt = (int)$row['c']; }
+  } else {
+    $avg = null; $cnt = 0;
+  }
   if (isLoggedIn()) {
     $uid = (int)$_SESSION['user_id'];
-    $s = $pdo->prepare('SELECT rating FROM valoraciones WHERE user_id=? AND game_id=?');
-    $s->execute([$uid, $juego['id']]); $r = $s->fetch(PDO::FETCH_ASSOC); if ($r) $myRating = (int)$r['rating'];
-    $s = $pdo->prepare('SELECT posicion FROM favoritos WHERE user_id=? AND game_id=?');
-    $s->execute([$uid, $juego['id']]); $f = $s->fetch(PDO::FETCH_ASSOC); if ($f) { $isFav = true; $favPos = (int)$f['posicion']; }
+    if (!$juego['es_futuro_lanzamiento']) {
+      $s = $pdo->prepare('SELECT rating FROM valoraciones WHERE user_id=? AND game_id=?');
+      $s->execute([$uid, $juego['id']]); $r = $s->fetch(PDO::FETCH_ASSOC); if ($r) $myRating = (int)$r['rating'];
+      $s = $pdo->prepare('SELECT posicion FROM favoritos WHERE user_id=? AND game_id=?');
+      $s->execute([$uid, $juego['id']]); $f = $s->fetch(PDO::FETCH_ASSOC); if ($f) { $isFav = true; $favPos = (int)$f['posicion']; }
+    }
   }
 } catch (Exception $e) { /* noop */ }
 ?>
@@ -205,32 +226,38 @@ try {
             <div class="d-flex align-items-center flex-wrap gap-3">
               <div>
                 <span class="fw-semibold">Nota de la comunidad:</span>
-                <span class="badge bg-primary ms-1"><?php echo $avg !== null ? $avg : '-'; ?></span>
-                <small class="text-muted ms-1"><?php echo (int)$cnt; ?> votos</small>
+                <span class="badge bg-primary ms-1"><?php echo !$juego['es_futuro_lanzamiento'] && $avg !== null ? $avg : '-'; ?></span>
+                <?php if (!$juego['es_futuro_lanzamiento']): ?>
+                  <small class="text-muted ms-1"><?php echo (int)$cnt; ?> votos</small>
+                <?php endif; ?>
               </div>
               <?php if (isLoggedIn()): ?>
-              <form class="d-flex align-items-center gap-2" method="post">
-                <input type="hidden" name="set_rating" value="1">
-                <input type="hidden" name="game_id" value="<?php echo (int)$juego['id']; ?>">
-                <label for="rating" class="small text-muted mb-0">Tu nota</label>
-                <select name="rating" id="rating" class="form-select form-select-sm" style="width: auto;">
-                  <?php for ($i=1; $i<=10; $i++): ?>
-                    <option value="<?php echo $i; ?>" <?php echo ($myRating===$i)?'selected':''; ?>><?php echo $i; ?></option>
-                  <?php endfor; ?>
-                </select>
-                <button class="btn btn-sm btn-outline-primary" type="submit"><i class="fas fa-star me-1"></i> Guardar</button>
-              </form>
-              <form method="post">
-                <input type="hidden" name="game_id" value="<?php echo (int)$juego['id']; ?>">
-                <?php if ($isFav): ?>
-                  <input type="hidden" name="fav_action" value="remove">
-                  <button class="btn btn-sm btn-outline-danger" type="submit"><i class="fas fa-heart-broken me-1"></i> Quitar de favoritos<?php echo $favPos? ' (#'.$favPos.')':''; ?></button>
+                <?php if (!$juego['es_futuro_lanzamiento']): ?>
+                  <form class="d-flex align-items-center gap-2" method="post">
+                    <input type="hidden" name="set_rating" value="1">
+                    <input type="hidden" name="game_id" value="<?php echo (int)$juego['id']; ?>">
+                    <label for="rating" class="small text-muted mb-0">Tu nota</label>
+                    <select name="rating" id="rating" class="form-select form-select-sm" style="width: auto;">
+                      <?php for ($i=1; $i<=10; $i++): ?>
+                        <option value="<?php echo $i; ?>" <?php echo ($myRating===$i)?'selected':''; ?>><?php echo $i; ?></option>
+                      <?php endfor; ?>
+                    </select>
+                    <button class="btn btn-sm btn-outline-primary" type="submit"><i class="fas fa-star me-1"></i> Guardar</button>
+                  </form>
+                  <form method="post">
+                    <input type="hidden" name="game_id" value="<?php echo (int)$juego['id']; ?>">
+                    <?php if ($isFav): ?>
+                      <input type="hidden" name="fav_action" value="remove">
+                      <button class="btn btn-sm btn-outline-danger" type="submit"><i class="fas fa-heart-broken me-1"></i> Quitar de favoritos<?php echo $favPos? ' (#'.$favPos.')':''; ?></button>
+                    <?php else: ?>
+                      <input type="hidden" name="fav_action" value="add">
+                      <button class="btn btn-sm btn-outline-success" type="submit"><i class="fas fa-heart me-1"></i> Añadir a favoritos</button>
+                    <?php endif; ?>
+                  </form>
+                  <a class="btn btn-sm btn-outline-secondary" href="favorites.php"><i class="fas fa-trophy me-1"></i> Mi Top favoritos</a>
                 <?php else: ?>
-                  <input type="hidden" name="fav_action" value="add">
-                  <button class="btn btn-sm btn-outline-success" type="submit"><i class="fas fa-heart me-1"></i> Añadir a favoritos</button>
+                  <small class="text-muted">Próximamente: sin puntuación ni favoritos.</small>
                 <?php endif; ?>
-              </form>
-              <a class="btn btn-sm btn-outline-secondary" href="favorites.php"><i class="fas fa-trophy me-1"></i> Mi Top favoritos</a>
               <?php else: ?>
                 <small class="text-muted">Inicia sesión para puntuar y marcar favoritos.</small>
               <?php endif; ?>
@@ -279,7 +306,7 @@ try {
             <li><strong>Plataforma:</strong> <?php echo sanitize($juego['plataforma'] ?: '-'); ?></li>
             <li><strong>Género:</strong> <?php echo sanitize($juego['genero'] ?: '-'); ?></li>
             <li><strong>Desarrollador:</strong> <?php echo sanitize($juego['desarrollador'] ?: '-'); ?></li>
-            <li><strong>Precio:</strong> <?php echo $juego['precio'] ? '€' . number_format($juego['precio'], 2) : '-'; ?></li>
+            <li><strong>Precio:</strong> <?php echo $juego['precio'] ? '<span class="price-badge">€' . number_format($juego['precio'], 2) . '</span>' : '-'; ?></li>
             <li><strong>Actualizado:</strong> <?php echo date('d/m/Y H:i', strtotime($juego['updated_at'])); ?></li>
           </ul>
           <div class="d-grid gap-2">

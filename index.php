@@ -34,11 +34,11 @@ if (isset($_GET['buscar']) && !empty($_GET['buscar'])) {
 <body>
     <!-- Banner Principal -->
     <header class="hero-banner">
+        <img src="media/rulethemando.png" alt="<?php echo SITE_NAME; ?>" class="hero-image" loading="eager">
         <div class="hero-overlay">
             <div class="container text-center">
                 <h1 class="visually-hidden"><?php echo SITE_NAME; ?></h1>
-                <img src="media/rulethemando.png" alt="<?php echo SITE_NAME; ?>" class="hero-image" loading="eager">
-                <p class="lead text-white-50 mt-4">Tu guía definitiva de videojuegos</p>
+                <p class="lead text-white-50 mt-4">Tu lista de videojuegos</p>
             </div>
         </div>
     </header>
@@ -161,7 +161,7 @@ if (isset($_GET['buscar']) && !empty($_GET['buscar'])) {
                                         <div class="d-flex justify-content-between align-items-center mb-2">
                                             <span class="badge bg-primary"><?php echo sanitize($juego['genero']); ?></span>
                                             <?php if ($juego['precio']): ?>
-                                                <span class="fw-bold text-success">€<?php echo number_format($juego['precio'], 2); ?></span>
+                                                <span class="price-badge">€<?php echo number_format($juego['precio'], 2); ?></span>
                                             <?php endif; ?>
                                         </div>
                                         <small class="text-muted">
@@ -220,7 +220,7 @@ if (isset($_GET['buscar']) && !empty($_GET['buscar'])) {
                                         <p class="mb-2"><strong>Plataforma:</strong> <?php echo sanitize($futuroJuego['plataforma']); ?></p>
                                         <p class="mb-2"><strong>Género:</strong> <?php echo sanitize($futuroJuego['genero']); ?></p>
                                         <?php if ($futuroJuego['precio']): ?>
-                                            <p class="mb-0"><strong>Precio estimado:</strong> <span class="text-success">€<?php echo number_format($futuroJuego['precio'], 2); ?></span></p>
+                                            <p class="mb-0"><strong>Precio estimado:</strong> <span class="price-badge">€<?php echo number_format($futuroJuego['precio'], 2); ?></span></p>
                                         <?php endif; ?>
                                         <div class="mt-3 d-flex gap-2">
                                             <a class="btn btn-primary" href="<?php echo $hrefF; ?>"><i class="fas fa-info-circle me-1"></i> Ver detalle</a>
@@ -329,6 +329,36 @@ if (isset($_GET['buscar']) && !empty($_GET['buscar'])) {
                 this.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
             });
         });
+
+                        // Parallax suave: texto (overlay) hacia arriba y la imagen hacia abajo
+                (function(){
+                    const hero = document.querySelector('.hero-banner');
+                            const overlay = hero ? hero.querySelector('.hero-overlay') : null;
+                            const img = hero ? hero.querySelector('.hero-image') : null;
+                    const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                            if (!hero || !overlay || !img || reduceMotion) return;
+
+                    let ticking = false;
+                    function updateParallax(){
+                        const start = hero.offsetTop;
+                        const h = hero.offsetHeight;
+                        const y = Math.min(Math.max(window.scrollY - start, 0), h);
+                                // Texto sube (negativo), imagen baja (positivo)
+                                overlay.style.transform = `translateY(${-y * 0.25}px)`;
+                                img.style.transform = `translateY(${y * 0.15}px) scale(1.05)`;
+                        ticking = false;
+                    }
+                    function onScroll(){
+                        if (!ticking) {
+                            ticking = true;
+                            requestAnimationFrame(updateParallax);
+                        }
+                    }
+                    window.addEventListener('scroll', onScroll, { passive: true });
+                    window.addEventListener('resize', onScroll);
+                    // Inicial
+                    updateParallax();
+                })();
     </script>
 </body>
 </html>
