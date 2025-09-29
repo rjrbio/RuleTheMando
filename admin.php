@@ -24,6 +24,40 @@ if (!file_exists(UPLOAD_PATH)) {
     mkdir(UPLOAD_PATH, 0777, true);
 }
 
+// Asegurar tabla de críticas (una por usuario y juego)
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS criticas (
+        user_id INT NOT NULL,
+        game_id INT NOT NULL,
+        contenido TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (user_id, game_id),
+        INDEX (game_id),
+        INDEX (user_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+    // Tabla de likes de críticas
+    $pdo->exec("CREATE TABLE IF NOT EXISTS critica_likes (
+        review_user_id INT NOT NULL,
+        game_id INT NOT NULL,
+        liker_user_id INT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (review_user_id, game_id, liker_user_id),
+        INDEX (game_id),
+        INDEX (review_user_id),
+        INDEX (liker_user_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+    // Añadir FKs con ON DELETE CASCADE (ignorar si ya existen)
+    try { $pdo->exec("ALTER TABLE criticas ADD CONSTRAINT fk_criticas_user FOREIGN KEY (user_id) REFERENCES usuarios(id) ON DELETE CASCADE"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE criticas ADD CONSTRAINT fk_criticas_game FOREIGN KEY (game_id) REFERENCES videojuegos(id) ON DELETE CASCADE"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE critica_likes ADD CONSTRAINT fk_cl_review FOREIGN KEY (review_user_id, game_id) REFERENCES criticas(user_id, game_id) ON DELETE CASCADE"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE critica_likes ADD CONSTRAINT fk_cl_liker FOREIGN KEY (liker_user_id) REFERENCES usuarios(id) ON DELETE CASCADE"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE valoraciones ADD CONSTRAINT fk_val_user FOREIGN KEY (user_id) REFERENCES usuarios(id) ON DELETE CASCADE"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE valoraciones ADD CONSTRAINT fk_val_game FOREIGN KEY (game_id) REFERENCES videojuegos(id) ON DELETE CASCADE"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE favoritos ADD CONSTRAINT fk_fav_user FOREIGN KEY (user_id) REFERENCES usuarios(id) ON DELETE CASCADE"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE favoritos ADD CONSTRAINT fk_fav_game FOREIGN KEY (game_id) REFERENCES videojuegos(id) ON DELETE CASCADE"); } catch (Exception $e) {}
+} catch (Exception $e) { /* noop */ }
+
 // Procesar formulario de añadir juego
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_game'])) {
     $oldAdd = $_POST; // guardar valores enviados
@@ -33,7 +67,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_game'])) {
     $plataforma = sanitize($_POST['plataforma']);
     $genero = sanitize($_POST['genero']);
     $desarrollador = sanitize($_POST['desarrollador']);
-    $precio = $_POST['precio'] ? floatval($_POST['precio']) : null;
+    // El proyecto ya no usa precio; guardamos NULL siempre
+    $precio = null;
     $es_futuro_lanzamiento = isset($_POST['es_futuro_lanzamiento']) ? 1 : 0;
 
     // Manejar subida de imagen
@@ -151,7 +186,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_game'])) {
         $plataforma = sanitize($_POST['plataforma'] ?? '');
         $genero = sanitize($_POST['genero'] ?? '');
         $desarrollador = sanitize($_POST['desarrollador'] ?? '');
-        $precio = isset($_POST['precio']) && $_POST['precio'] !== '' ? floatval($_POST['precio']) : null;
+    // El proyecto ya no usa precio; guardamos NULL siempre
+    $precio = null;
         $es_futuro_lanzamiento = isset($_POST['es_futuro_lanzamiento']) ? 1 : 0;
 
         // Obtener imagen actual
@@ -271,6 +307,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['user_action'])) {
     }
 }
 
+// Acciones de gestión de críticas (solo admin)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['review_action'])) {
+    $action = $_POST['review_action'];
+    $uId = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
+    $gId = isset($_POST['game_id']) ? intval($_POST['game_id']) : 0;
+    if (!isAdmin()) { redirect('login.php'); }
+    try {
+        if ($action === 'delete' && $uId > 0 && $gId > 0) {
+            // eliminar crítica y sus likes asociados
+            $stmt = $pdo->prepare('DELETE FROM criticas WHERE user_id=? AND game_id=?');
+            $ok = $stmt->execute([$uId, $gId]);
+            $pdo->prepare('DELETE FROM critica_likes WHERE review_user_id=? AND game_id=?')->execute([$uId, $gId]);
+            $success = $ok; $message = $ok ? 'Crítica eliminada.' : 'No se pudo eliminar la crítica.';
+        } elseif ($action === 'update' && $uId > 0 && $gId > 0) {
+            $contenido = trim($_POST['contenido'] ?? '');
+            if ($contenido === '') {
+                $stmt = $pdo->prepare('DELETE FROM criticas WHERE user_id=? AND game_id=?');
+                $ok = $stmt->execute([$uId, $gId]);
+                $pdo->prepare('DELETE FROM critica_likes WHERE review_user_id=? AND game_id=?')->execute([$uId, $gId]);
+                $success = $ok; $message = $ok ? 'Crítica eliminada.' : 'No se pudo eliminar la crítica.';
+            } else {
+                $stmt = $pdo->prepare('INSERT INTO criticas (user_id, game_id, contenido, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())
+                                       ON DUPLICATE KEY UPDATE contenido=VALUES(contenido), updated_at=NOW()');
+                $ok = $stmt->execute([$uId, $gId, $contenido]);
+                $success = $ok; $message = $ok ? 'Crítica actualizada.' : 'No se pudo actualizar la crítica.';
+            }
+        }
+    } catch (Exception $e) { $success = false; $message = 'Error: ' . htmlspecialchars($e->getMessage()); }
+}
+
 // Obtener todos los juegos para la tabla
 $stmt = $pdo->prepare("SELECT * FROM videojuegos ORDER BY created_at DESC");
 $stmt->execute();
@@ -293,6 +359,28 @@ $totalUsuarios = $stmt->fetchColumn();
 $stmt = $pdo->prepare('SELECT id, username, email, email_verified, role, created_at FROM usuarios ORDER BY created_at DESC');
 $stmt->execute();
 $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Cargar críticas con datos de usuario y juego (filtro opcional por búsqueda)
+$reviewQ = isset($_GET['review_q']) ? trim($_GET['review_q']) : '';
+$reviews = [];
+try {
+    $sql = 'SELECT c.user_id, c.game_id, c.contenido, c.updated_at, u.username, v.titulo,
+                   (SELECT rating FROM valoraciones WHERE user_id=c.user_id AND game_id=c.game_id) as rating,
+                   (SELECT COUNT(*) FROM critica_likes cl WHERE cl.review_user_id = c.user_id AND cl.game_id = c.game_id) AS likes_count
+            FROM criticas c
+            JOIN usuarios u ON u.id = c.user_id
+            JOIN videojuegos v ON v.id = c.game_id';
+    $params = [];
+    if ($reviewQ !== '') {
+        $sql .= ' WHERE u.username LIKE ? OR v.titulo LIKE ?';
+        $like = '%' . $reviewQ . '%';
+        $params = [$like, $like];
+    }
+    $sql .= ' ORDER BY c.updated_at DESC';
+    $q = $pdo->prepare($sql);
+    $q->execute($params);
+    $reviews = $q->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) { /* noop */ }
 ?>
 
 <!DOCTYPE html>
@@ -439,6 +527,11 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 </a>
             </li>
             <li class="sidebar-nav-item">
+                <a href="#manage-reviews" class="sidebar-nav-link">
+                    <i class="fas fa-comments me-2"></i>Gestionar Críticas
+                </a>
+            </li>
+            <li class="sidebar-nav-item">
                 <a href="admin-change-password.php" class="sidebar-nav-link">
                     <i class="fas fa-key me-2"></i>Cambiar contraseña
                 </a>
@@ -545,7 +638,7 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                                         <div class="d-flex align-items-center justify-content-between">
                                                             <strong><?php echo sanitize($juego['titulo']); ?></strong>
                                                             <div class="btn-group btn-group-sm" role="group">
-                                                            <button type="button" class="btn btn-outline-primary" title="Modificar" data-bs-toggle="modal" data-bs-target="#editModal"
+                                                            <button type="button" class="btn btn-warning text-dark" title="Modificar" data-bs-toggle="modal" data-bs-target="#editModal"
                                                                 data-id="<?php echo (int)$juego['id']; ?>"
                                                                 data-titulo="<?php echo htmlspecialchars($juego['titulo'], ENT_QUOTES); ?>"
                                                                 data-descripcion="<?php echo htmlspecialchars($juego['descripcion'], ENT_QUOTES); ?>"
@@ -553,7 +646,7 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                                                 data-plataforma="<?php echo htmlspecialchars($juego['plataforma'], ENT_QUOTES); ?>"
                                                                 data-genero="<?php echo htmlspecialchars($juego['genero'], ENT_QUOTES); ?>"
                                                                 data-desarrollador="<?php echo htmlspecialchars($juego['desarrollador'], ENT_QUOTES); ?>"
-                                                                data-precio="<?php echo htmlspecialchars($juego['precio']); ?>"
+                                                                
                                                                 data-futuro="<?php echo !empty($juego['es_futuro_lanzamiento']) ? '1' : '0'; ?>"
                                                                 data-imagen="<?php echo htmlspecialchars($juego['imagen']); ?>"
                                                                 data-slug="<?php echo htmlspecialchars($juego['slug'] ?? ''); ?>">
@@ -665,13 +758,7 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         </div>
 
                                         <div class="row">
-                                            <div class="col-md-6">
-                                                <div class="form-floating mb-3">
-                                                    <input type="number" step="0.01" class="form-control" id="precio"
-                                                        name="precio" placeholder="Precio" value="<?php echo htmlspecialchars($oldAdd['precio'] ?? ''); ?>">
-                                                    <label for="precio">Precio (€)</label>
-                                                </div>
-                                            </div>
+                                            
                                             <div class="col-md-6">
                                                 <div class="mb-3">
                                                     <label for="imagen" class="form-label">Imagen del Juego</label>
@@ -728,7 +815,7 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         <th>Plataforma</th>
                                         <th>Género</th>
                                         <th>Fecha</th>
-                                        <th>Precio</th>
+                                        
                                         <th>Estado</th>
                                         <th>Acciones</th>
                                     </tr>
@@ -752,14 +839,7 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                                     class="badge bg-secondary"><?php echo sanitize($juego['genero']); ?></span>
                                             </td>
                                             <td><?php echo date('d/m/Y', strtotime($juego['fecha_lanzamiento'])); ?></td>
-                                            <td>
-                                                <?php if ($juego['precio']): ?>
-                                                    <span
-                                                        class="text-success">€<?php echo number_format($juego['precio'], 2); ?></span>
-                                                <?php else: ?>
-                                                    <span class="text-muted">-</span>
-                                                <?php endif; ?>
-                                            </td>
+                                            
                                             <td>
                                                 <?php if ($juego['es_futuro_lanzamiento']): ?>
                                                     <span class="badge bg-warning">Próximamente</span>
@@ -769,7 +849,7 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                             </td>
                                             <td>
                                                 <div class="btn-group" role="group">
-                                                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal"
+                                                    <button type="button" class="btn btn-sm btn-warning text-dark" data-bs-toggle="modal" data-bs-target="#editModal"
                                                         data-id="<?php echo (int)$juego['id']; ?>"
                                                         data-titulo="<?php echo htmlspecialchars($juego['titulo'], ENT_QUOTES); ?>"
                                                         data-descripcion="<?php echo htmlspecialchars($juego['descripcion'], ENT_QUOTES); ?>"
@@ -777,7 +857,7 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                                         data-plataforma="<?php echo htmlspecialchars($juego['plataforma'], ENT_QUOTES); ?>"
                                                         data-genero="<?php echo htmlspecialchars($juego['genero'], ENT_QUOTES); ?>"
                                                         data-desarrollador="<?php echo htmlspecialchars($juego['desarrollador'], ENT_QUOTES); ?>"
-                                                        data-precio="<?php echo htmlspecialchars($juego['precio']); ?>"
+                                                        
                                                         data-futuro="<?php echo !empty($juego['es_futuro_lanzamiento']) ? '1' : '0'; ?>"
                                                         data-imagen="<?php echo htmlspecialchars($juego['imagen']); ?>"
                                                         data-slug="<?php echo htmlspecialchars($juego['slug'] ?? ''); ?>">
@@ -889,6 +969,69 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </div>
                     </div>
                 </div>
+
+                <!-- Manage Reviews Tab -->
+                <div class="tab-pane fade" id="manage-reviews">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="mb-0">Gestionar Críticas</h4>
+                        <div class="input-group" style="max-width: 360px;">
+                            <input type="text" class="form-control" id="searchReviews" placeholder="Buscar por usuario o juego" value="<?php echo htmlspecialchars($reviewQ); ?>">
+                            <button class="btn btn-outline-secondary" type="button"><i class="fas fa-search"></i></button>
+                        </div>
+                    </div>
+                    <div class="game-table">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0" id="reviewsTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Usuario</th>
+                                        <th>Juego</th>
+                                        <th>Nota</th>
+                                        <th>Likes</th>
+                                        <th>Actualizada</th>
+                                        <th>Crítica</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($reviews as $rv): ?>
+                                        <tr>
+                                            <td><strong><?php echo htmlspecialchars($rv['username']); ?></strong><br><span class="text-muted">ID: <?php echo (int)$rv['user_id']; ?></span></td>
+                                            <td><?php echo htmlspecialchars($rv['titulo']); ?><br><span class="text-muted">ID: <?php echo (int)$rv['game_id']; ?></span></td>
+                                            <td><span class="badge bg-primary"><?php echo $rv['rating'] ? (int)$rv['rating'] : '-'; ?></span></td>
+                                            <td><span class="badge bg-success"><i class="fas fa-thumbs-up me-1"></i><?php echo (int)($rv['likes_count'] ?? 0); ?></span></td>
+                                            <td><?php echo htmlspecialchars(date('d/m/Y H:i', strtotime($rv['updated_at']))); ?></td>
+                                            <td style="max-width: 420px;">
+                                                <div class="small" style="white-space: pre-wrap;" id="rv_view_<?php echo (int)$rv['user_id'] . '_' . (int)$rv['game_id']; ?>"><?php echo nl2br(htmlspecialchars($rv['contenido'])); ?></div>
+                                                <form method="post" id="rv_edit_<?php echo (int)$rv['user_id'] . '_' . (int)$rv['game_id']; ?>" style="display:none;">
+                                                    <input type="hidden" name="review_action" value="update">
+                                                    <input type="hidden" name="user_id" value="<?php echo (int)$rv['user_id']; ?>">
+                                                    <input type="hidden" name="game_id" value="<?php echo (int)$rv['game_id']; ?>">
+                                                    <textarea name="contenido" class="form-control" rows="3"><?php echo htmlspecialchars($rv['contenido']); ?></textarea>
+                                                    <div class="mt-2 d-flex gap-2">
+                                                        <button class="btn btn-sm btn-primary" type="submit"><i class="fas fa-save me-1"></i> Guardar</button>
+                                                        <button class="btn btn-sm btn-secondary" type="button" onclick="toggleAdminReview('<?php echo (int)$rv['user_id'] . '_' . (int)$rv['game_id']; ?>')">Cancelar</button>
+                                                    </div>
+                                                </form>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm" role="group">
+                                                    <button class="btn btn-outline-primary" type="button" onclick="toggleAdminReview('<?php echo (int)$rv['user_id'] . '_' . (int)$rv['game_id']; ?>')"><i class="fas fa-edit"></i></button>
+                                                    <form method="post" onsubmit="return confirm('¿Eliminar crítica?');">
+                                                        <input type="hidden" name="review_action" value="delete">
+                                                        <input type="hidden" name="user_id" value="<?php echo (int)$rv['user_id']; ?>">
+                                                        <input type="hidden" name="game_id" value="<?php echo (int)$rv['game_id']; ?>">
+                                                        <button class="btn btn-outline-danger" type="submit"><i class="fas fa-trash"></i></button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -950,10 +1093,7 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     <label class="form-label">Género</label>
                                     <input type="text" class="form-control" id="edit_genero" name="genero" required>
                                 </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Precio (€)</label>
-                                    <input type="number" step="0.01" class="form-control" id="edit_precio" name="precio">
-                                </div>
+                                
                                 <div class="col-md-8">
                                     <label class="form-label">Imagen (opcional, reemplaza la actual)</label>
                                     <input type="file" class="form-control" id="edit_imagen" name="imagen" accept="image/*">
@@ -1054,6 +1194,27 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
             }
         });
 
+        // Búsqueda de críticas
+        var searchReviews = document.getElementById('searchReviews');
+        if (searchReviews) {
+            searchReviews.addEventListener('keyup', function(){
+                var term = this.value.toLowerCase();
+                document.querySelectorAll('#reviewsTable tbody tr').forEach(function(tr){
+                    tr.style.display = tr.textContent.toLowerCase().includes(term) ? '' : 'none';
+                });
+            });
+        }
+
+        // Toggle edición de crítica en admin
+        window.toggleAdminReview = function(key){
+            var view = document.getElementById('rv_view_' + key);
+            var edit = document.getElementById('rv_edit_' + key);
+            if (!view || !edit) return;
+            var showEdit = edit.style.display === 'none' || edit.style.display === '';
+            edit.style.display = showEdit ? 'block' : 'none';
+            view.style.display = showEdit ? 'none' : 'block';
+        };
+
         // Función para confirmar eliminación
         function confirmDelete(gameId, gameTitle) {
             document.getElementById('gameTitle').textContent = gameTitle;
@@ -1076,7 +1237,7 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         var plataforma = button.getAttribute('data-plataforma');
                         var genero = button.getAttribute('data-genero');
                         var desarrollador = button.getAttribute('data-desarrollador');
-                        var precio = button.getAttribute('data-precio');
+                        
                         var futuro = button.getAttribute('data-futuro') === '1';
                         var imagen = button.getAttribute('data-imagen');
 
@@ -1087,7 +1248,7 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         document.getElementById('edit_plataforma').value = plataforma || '';
                         document.getElementById('edit_genero').value = genero || '';
                         document.getElementById('edit_desarrollador').value = desarrollador || '';
-                        document.getElementById('edit_precio').value = precio || '';
+                        
                         document.getElementById('edit_futuro').checked = futuro;
 
                         var preview = document.getElementById('edit_preview');

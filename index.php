@@ -1,8 +1,28 @@
 <?php
 require_once 'config.php';
 
+// Asegurar tabla de valoraciones para poder calcular notas (no falla si ya existe)
+try {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS valoraciones (
+            user_id INT NOT NULL,
+            game_id INT NOT NULL,
+            rating TINYINT UNSIGNED NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (user_id, game_id), INDEX (game_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+} catch (Exception $e) {}
+
 // Obtener los últimos juegos añadidos (excluyendo futuros lanzamientos)
-$stmt = $pdo->prepare("SELECT * FROM videojuegos WHERE es_futuro_lanzamiento = FALSE ORDER BY created_at DESC LIMIT 6");
+$stmt = $pdo->prepare("SELECT v.*, COALESCE(r.avg_rating, 0) AS avg_rating, COALESCE(r.votes, 0) AS votes
+                                             FROM videojuegos v
+                                             LEFT JOIN (
+                                                 SELECT game_id, AVG(rating) AS avg_rating, COUNT(*) AS votes
+                                                 FROM valoraciones
+                                                 GROUP BY game_id
+                                             ) r ON r.game_id = v.id
+                                             WHERE v.es_futuro_lanzamiento = FALSE
+                                             ORDER BY v.created_at DESC
+                                             LIMIT 6");
 $stmt->execute();
 $ultimosJuegos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -15,7 +35,15 @@ $futuroJuego = $stmt->fetch(PDO::FETCH_ASSOC);
 $resultadosBusqueda = [];
 if (isset($_GET['buscar']) && !empty($_GET['buscar'])) {
     $termino = '%' . sanitize($_GET['buscar']) . '%';
-    $stmt = $pdo->prepare("SELECT * FROM videojuegos WHERE titulo LIKE ? OR descripcion LIKE ? ORDER BY created_at DESC");
+        $stmt = $pdo->prepare("SELECT v.*, COALESCE(r.avg_rating, 0) AS avg_rating, COALESCE(r.votes, 0) AS votes
+                                                     FROM videojuegos v
+                                                     LEFT JOIN (
+                                                         SELECT game_id, AVG(rating) AS avg_rating, COUNT(*) AS votes
+                                                         FROM valoraciones
+                                                         GROUP BY game_id
+                                                     ) r ON r.game_id = v.id
+                                                     WHERE v.titulo LIKE ? OR v.descripcion LIKE ?
+                                                     ORDER BY v.created_at DESC");
     $stmt->execute([$termino, $termino]);
     $resultadosBusqueda = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
@@ -112,7 +140,13 @@ if (isset($_GET['buscar']) && !empty($_GET['buscar'])) {
                                          class="card-img-top" alt="<?php echo sanitize($juego['titulo']); ?>">
                                 </a>
                                 <div class="card-body d-flex flex-column">
-                                    <h5 class="card-title"><a href="<?php echo $href; ?>" class="text-decoration-none"><?php echo sanitize($juego['titulo']); ?></a></h5>
+                                                                        <h5 class="card-title d-flex align-items-center justify-content-between">
+                                                                            <a href="<?php echo $href; ?>" class="text-decoration-none"><?php echo sanitize($juego['titulo']); ?></a>
+                                                                            <span class="small text-muted ms-2">
+                                                                                <i class="fas fa-star text-warning"></i>
+                                                                                <?php echo isset($juego['avg_rating']) && $juego['avg_rating'] ? number_format((float)$juego['avg_rating'], 1) : '-'; ?>
+                                                                            </span>
+                                                                        </h5>
                                     <p class="card-text flex-grow-1"><?php echo sanitize(substr($juego['descripcion'], 0, 100)) . '...'; ?></p>
                                     <div class="mt-auto">
                                         <small class="text-muted">
@@ -123,7 +157,7 @@ if (isset($_GET['buscar']) && !empty($_GET['buscar'])) {
                                             <i class="fas fa-gamepad"></i> <?php echo sanitize($juego['plataforma']); ?>
                                         </small>
                                             <div class="mt-2 d-flex gap-2">
-                                                <a class="btn btn-sm btn-outline-primary" href="<?php echo $href; ?>"><i class="fas fa-info-circle me-1"></i> Ver detalle</a>
+                                                <a class="btn btn-sm btn-outline-primary" href="<?php echo $href; ?>"><i class="fas fa-info-circle me-1"></i> Ver ficha</a>
                                                 <?php if (isAdmin()): ?>
                                                     <a class="btn btn-sm btn-outline-secondary" href="admin.php?edit=<?php echo (int)$juego['id']; ?>#manage-games"><i class="fas fa-edit me-1"></i> Editar</a>
                                                 <?php endif; ?>
@@ -155,14 +189,17 @@ if (isset($_GET['buscar']) && !empty($_GET['buscar'])) {
                                          class="card-img-top" alt="<?php echo sanitize($juego['titulo']); ?>">
                                 </a>
                                 <div class="card-body d-flex flex-column">
-                                    <h5 class="card-title"><a href="<?php echo $href; ?>" class="text-decoration-none"><?php echo sanitize($juego['titulo']); ?></a></h5>
+                                                                        <h5 class="card-title d-flex align-items-center justify-content-between">
+                                                                            <a href="<?php echo $href; ?>" class="text-decoration-none"><?php echo sanitize($juego['titulo']); ?></a>
+                                                                            <span class="small text-muted ms-2">
+                                                                                <i class="fas fa-star text-warning"></i>
+                                                                                <?php echo isset($juego['avg_rating']) && $juego['avg_rating'] ? number_format((float)$juego['avg_rating'], 1) : '-'; ?>
+                                                                            </span>
+                                                                        </h5>
                                     <p class="card-text flex-grow-1"><?php echo sanitize(substr($juego['descripcion'], 0, 100)) . '...'; ?></p>
                                     <div class="mt-auto">
                                         <div class="d-flex justify-content-between align-items-center mb-2">
                                             <span class="badge bg-primary"><?php echo sanitize($juego['genero']); ?></span>
-                                            <?php if ($juego['precio']): ?>
-                                                <span class="price-badge">€<?php echo number_format($juego['precio'], 2); ?></span>
-                                            <?php endif; ?>
                                         </div>
                                         <small class="text-muted">
                                             <i class="fas fa-calendar"></i> <?php echo date('d/m/Y', strtotime($juego['fecha_lanzamiento'])); ?>
@@ -172,7 +209,7 @@ if (isset($_GET['buscar']) && !empty($_GET['buscar'])) {
                                             <i class="fas fa-gamepad"></i> <?php echo sanitize($juego['plataforma']); ?>
                                         </small>
                                         <div class="mt-2 d-flex gap-2">
-                                            <a class="btn btn-sm btn-outline-primary" href="<?php echo $href; ?>"><i class="fas fa-info-circle me-1"></i> Ver detalle</a>
+                                            <a class="btn btn-sm btn-outline-primary" href="<?php echo $href; ?>"><i class="fas fa-info-circle me-1"></i> Ver ficha</a>
                                             <?php if (isAdmin()): ?>
                                                 <a class="btn btn-sm btn-outline-secondary" href="admin.php?edit=<?php echo (int)$juego['id']; ?>#manage-games"><i class="fas fa-edit me-1"></i> Editar</a>
                                             <?php endif; ?>
@@ -219,11 +256,9 @@ if (isset($_GET['buscar']) && !empty($_GET['buscar'])) {
                                         <p class="mb-2"><strong>Desarrollador:</strong> <?php echo sanitize($futuroJuego['desarrollador']); ?></p>
                                         <p class="mb-2"><strong>Plataforma:</strong> <?php echo sanitize($futuroJuego['plataforma']); ?></p>
                                         <p class="mb-2"><strong>Género:</strong> <?php echo sanitize($futuroJuego['genero']); ?></p>
-                                        <?php if ($futuroJuego['precio']): ?>
-                                            <p class="mb-0"><strong>Precio estimado:</strong> <span class="price-badge">€<?php echo number_format($futuroJuego['precio'], 2); ?></span></p>
-                                        <?php endif; ?>
+                                        
                                         <div class="mt-3 d-flex gap-2">
-                                            <a class="btn btn-primary" href="<?php echo $hrefF; ?>"><i class="fas fa-info-circle me-1"></i> Ver detalle</a>
+                                            <a class="btn btn-primary" href="<?php echo $hrefF; ?>"><i class="fas fa-info-circle me-1"></i> Ver ficha</a>
                                             <?php if (isAdmin()): ?>
                                                 <a class="btn btn-outline-secondary" href="admin.php?edit=<?php echo (int)$futuroJuego['id']; ?>#manage-games"><i class="fas fa-edit me-1"></i> Editar</a>
                                             <?php endif; ?>

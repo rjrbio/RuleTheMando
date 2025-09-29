@@ -276,6 +276,36 @@ body {
     color: #fff;
 }
 
+/* Mejorar contraste: texto blanco en badges grises/oscuro-claros */
+.badge.bg-secondary,
+.badge.bg-dark,
+.badge.bg-warning.text-dark { color: #111; } /* warning ya fuerza texto oscuro */
+.badge.bg-secondary { color: #fff !important; }
+
+/* Forzar texto claro sobre fondos grisáceos de secciones o cards grises si aparecen */
+.text-on-gray,
+.card .bg-light .text-muted-on-gray,
+.bg-secondary .text-contrast,
+.bg-gray-600,
+.bg-gray-700,
+.bg-gray-800 {
+    color: #fff !important;
+}
+
+/* Mejorar lectura de .text-muted sobre fondos grises/oscuros */
+.bg-secondary .text-muted,
+.bg-dark .text-muted,
+.bg-body-secondary .text-muted,
+.table-secondary .text-muted,
+.table-dark .text-muted,
+.list-group-item-secondary .text-muted,
+.card.bg-secondary .text-muted,
+.card-header.bg-secondary .text-muted,
+.card-footer.bg-secondary .text-muted {
+    color: #fff !important;
+    opacity: 1 !important; /* anula atenuación de Bootstrap si aplica */
+}
+
 /* Ajuste a badge primaria de Bootstrap con nuestra paleta */
 .badge.bg-primary {
     background: linear-gradient(135deg, var(--accent-color-2), var(--secondary-color)) !important;
@@ -321,6 +351,7 @@ footer h5 {
     background: #0f172a;
     color: #fff;
 }
+.game-hero .text-muted { color: #fff !important; opacity: 1 !important; }
 .game-hero-img {
     width: 100%;
     height: clamp(260px, 30vh, 520px);
@@ -397,14 +428,7 @@ footer h5 {
     color: #0e7490;
 }
 
-/* Precio como badge */
-.price-badge {
-    background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
-    color: #fff;
-    border-radius: 999px;
-    padding: 0.3rem 0.6rem;
-    font-weight: 700;
-}
+ 
 
 /* Responsive */
 @media (max-width: 768px) {
