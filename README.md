@@ -9,4 +9,4 @@
 <br>Así como ordenar tu propia lista de TOP Favoritos:
 <br><img width="60%" alt="favs" src="https://github.com/user-attachments/assets/00c565b8-3010-496d-af67-9820081dd593" />
 <br><br>Cada juego tiene su propia ficha donde se puede ver una descripción, la nota media por los usuarios, las críticas escritas...
-<img width="60%" alt="game" src="https://github.com/user-attachments/assets/d876807b-4180-4e82-a664-bf845e7ddccb" />
+<br><img width="60%" alt="game" src="https://github.com/user-attachments/assets/d876807b-4180-4e82-a664-bf845e7ddccb" />
