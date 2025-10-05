@@ -1,2 +1,0 @@
-# RuleTheMando
-Web sobre videojuegos 
