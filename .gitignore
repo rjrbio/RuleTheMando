@@ -1,0 +1,9 @@
+admin*
+check-supabase-limits.php
+helpers/
+docker*
+test*
+*.log
+*.env
+*.sql
+
