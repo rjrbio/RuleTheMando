@@ -6,4 +6,5 @@ test*
 *.log
 *.env
 *.sql
+supabase*
 
