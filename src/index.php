@@ -58,6 +58,7 @@ if (isset($_GET['buscar']) && !empty($_GET['buscar'])) {
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="styles.css" rel="stylesheet">
+    <link href="advanced-animations.css" rel="stylesheet">
 </head>
 <body>
     <!-- Banner Principal -->
@@ -129,7 +130,7 @@ if (isset($_GET['buscar']) && !empty($_GET['buscar'])) {
         <!-- Resultados de búsqueda -->
         <?php if (!empty($resultadosBusqueda)): ?>
             <section class="mb-5">
-                <h2 class="mb-4">Resultados de búsqueda para "<?php echo htmlspecialchars($_GET['buscar']); ?>"</h2>
+                <h2 class="mb-4 section-title">Resultados de búsqueda para "<?php echo htmlspecialchars($_GET['buscar']); ?>"</h2>
                 <div class="row">
                     <?php foreach ($resultadosBusqueda as $juego): ?>
                         <div class="col-md-4 mb-4">
@@ -178,7 +179,7 @@ if (isset($_GET['buscar']) && !empty($_GET['buscar'])) {
         <!-- Últimos Juegos Añadidos -->
         <?php if (empty($_GET['buscar'])): ?>
             <section class="mb-5">
-                <h2 class="mb-4"><i class="fas fa-star text-warning"></i> Últimos Juegos Añadidos</h2>
+                <h2 class="mb-4 section-title"><i class="fas fa-star text-warning"></i> Últimos Juegos Añadidos</h2>
                 <div class="row">
                     <?php foreach ($ultimosJuegos as $juego): ?>
                         <div class="col-lg-4 col-md-6 mb-4">
@@ -230,8 +231,8 @@ if (isset($_GET['buscar']) && !empty($_GET['buscar'])) {
                     $hrefF = 'game.php?' . ($slugF ? ('slug=' . urlencode($slugF)) : ('id=' . (int)$futuroJuego['id'])); 
                 ?>
                 <section class="mb-5">
-                    <h2 class="mb-4"><i class="fas fa-rocket text-info"></i> Próximo Lanzamiento</h2>
-                    <div class="card future-release-card">
+                    <h2 class="mb-4 section-title"><i class="fas fa-rocket text-info"></i> Próximo Lanzamiento</h2>
+                    <div class="card future-release-card pulse-effect">
                         <div class="row g-0">
                             <div class="col-md-4">
                                 <a href="<?php echo $hrefF; ?>">
@@ -395,5 +396,8 @@ if (isset($_GET['buscar']) && !empty($_GET['buscar'])) {
                     updateParallax();
                 })();
     </script>
+    
+    <!-- Animaciones y efectos avanzados -->
+    <script src="animations.js"></script>
 </body>
 </html>

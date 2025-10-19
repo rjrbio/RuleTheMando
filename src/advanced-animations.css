@@ -1,0 +1,433 @@
+/**
+ * Efectos y animaciones adicionales avanzadas
+ * Extensión del styles.css con efectos más elaborados
+ */
+
+/* Efecto de brillo en texto de títulos principales */
+@keyframes textShine {
+    0% {
+        background-position: 0% 50%;
+    }
+    100% {
+        background-position: 100% 50%;
+    }
+}
+
+.hero-banner h1,
+.section-title {
+    background: linear-gradient(
+        90deg,
+        var(--dark-color) 0%,
+        var(--primary-color) 25%,
+        var(--secondary-color) 50%,
+        var(--primary-color) 75%,
+        var(--dark-color) 100%
+    );
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: textShine 4s linear infinite;
+}
+
+/* Efecto de neón pulsante */
+@keyframes neonPulse {
+    0%, 100% {
+        text-shadow: 
+            0 0 5px rgba(255, 122, 24, 0.5),
+            0 0 10px rgba(255, 122, 24, 0.3),
+            0 0 15px rgba(6, 182, 212, 0.2);
+    }
+    50% {
+        text-shadow: 
+            0 0 10px rgba(255, 122, 24, 0.8),
+            0 0 20px rgba(255, 122, 24, 0.5),
+            0 0 30px rgba(6, 182, 212, 0.4),
+            0 0 40px rgba(124, 58, 237, 0.2);
+    }
+}
+
+/* Aplicar efecto neón a badges especiales */
+.badge-upcoming,
+.badge.bg-primary {
+    animation: neonPulse 2s ease-in-out infinite;
+}
+
+/* Efecto de cristal (glassmorphism) para tarjetas hover */
+.game-card:hover {
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Animación de latido para iconos importantes */
+@keyframes heartbeat {
+    0%, 100% {
+        transform: scale(1);
+    }
+    10%, 30% {
+        transform: scale(0.9);
+    }
+    20%, 40% {
+        transform: scale(1.1);
+    }
+}
+
+.fa-heart,
+.fa-star {
+    animation: heartbeat 2s ease-in-out infinite;
+}
+
+/* Efecto de onda en contenedores al hacer scroll */
+@keyframes waveReveal {
+    0% {
+        clip-path: polygon(0 0, 100% 0, 100% 0, 0 0);
+    }
+    100% {
+        clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+    }
+}
+
+.reveal-on-scroll {
+    animation: waveReveal 0.8s ease-out forwards;
+}
+
+/* Efecto de holográfico para tarjetas especiales */
+.future-release-card::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+        45deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.1) 40%,
+        rgba(6, 182, 212, 0.15) 50%,
+        rgba(255, 122, 24, 0.15) 60%,
+        transparent 70%
+    );
+    transform: rotate(0deg);
+    animation: holoRotate 6s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes holoRotate {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Efecto de aurora en fondos */
+@keyframes aurora {
+    0%, 100% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+}
+
+.aurora-background {
+    background: linear-gradient(
+        135deg,
+        rgba(255, 122, 24, 0.1),
+        rgba(6, 182, 212, 0.1),
+        rgba(124, 58, 237, 0.1),
+        rgba(255, 122, 24, 0.1)
+    );
+    background-size: 400% 400%;
+    animation: aurora 10s ease infinite;
+}
+
+/* Efecto de parallax mejorado para imágenes */
+.parallax-image {
+    transition: transform 0.3s ease-out;
+    will-change: transform;
+}
+
+/* Efecto de zoom suave en hover para todas las imágenes */
+img {
+    transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+img:hover {
+    transform: scale(1.02);
+}
+
+/* Animación de aparición escalonada para listas */
+@keyframes listItemFadeIn {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.stagger-list > * {
+    animation: listItemFadeIn 0.5s ease-out backwards;
+}
+
+.stagger-list > *:nth-child(1) { animation-delay: 0.1s; }
+.stagger-list > *:nth-child(2) { animation-delay: 0.2s; }
+.stagger-list > *:nth-child(3) { animation-delay: 0.3s; }
+.stagger-list > *:nth-child(4) { animation-delay: 0.4s; }
+.stagger-list > *:nth-child(5) { animation-delay: 0.5s; }
+.stagger-list > *:nth-child(6) { animation-delay: 0.6s; }
+
+/* Efecto de sombra dinámica */
+@keyframes shadowPulse {
+    0%, 100% {
+        box-shadow: 
+            0 5px 15px rgba(0, 0, 0, 0.1),
+            0 0 20px rgba(255, 122, 24, 0.2);
+    }
+    50% {
+        box-shadow: 
+            0 10px 30px rgba(0, 0, 0, 0.2),
+            0 0 40px rgba(6, 182, 212, 0.3);
+    }
+}
+
+.shadow-pulse {
+    animation: shadowPulse 3s ease-in-out infinite;
+}
+
+/* Efecto de typewriter para textos especiales */
+@keyframes typewriter {
+    from {
+        width: 0;
+    }
+    to {
+        width: 100%;
+    }
+}
+
+@keyframes blinkCursor {
+    from, to {
+        border-color: transparent;
+    }
+    50% {
+        border-color: var(--primary-color);
+    }
+}
+
+.typewriter {
+    overflow: hidden;
+    border-right: 2px solid var(--primary-color);
+    white-space: nowrap;
+    animation: 
+        typewriter 3s steps(40) 1s 1 normal both,
+        blinkCursor 0.75s step-end infinite;
+}
+
+/* Efecto de confetti para celebraciones */
+@keyframes confetti-fall {
+    0% {
+        transform: translateY(-100vh) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(100vh) rotate(720deg);
+        opacity: 0;
+    }
+}
+
+.confetti {
+    position: fixed;
+    width: 10px;
+    height: 10px;
+    background: var(--primary-color);
+    animation: confetti-fall 3s linear infinite;
+    pointer-events: none;
+    z-index: 9999;
+}
+
+/* Efecto de resplandor en botones activos */
+@keyframes buttonGlow {
+    0%, 100% {
+        box-shadow: 
+            0 0 5px rgba(255, 122, 24, 0.5),
+            0 0 10px rgba(6, 182, 212, 0.3);
+    }
+    50% {
+        box-shadow: 
+            0 0 20px rgba(255, 122, 24, 0.8),
+            0 0 30px rgba(6, 182, 212, 0.5),
+            0 0 40px rgba(124, 58, 237, 0.3);
+    }
+}
+
+.btn-primary:focus,
+.btn-secondary:focus {
+    animation: buttonGlow 1.5s ease-in-out infinite;
+}
+
+/* Efecto de ondas concéntricas */
+@keyframes rippleOut {
+    0% {
+        transform: scale(0);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(4);
+        opacity: 0;
+    }
+}
+
+.ripple-effect::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 3px solid var(--primary-color);
+    animation: rippleOut 2s ease-out infinite;
+}
+
+/* Efecto de rotación 3D en hover */
+.rotate-3d {
+    transition: transform 0.6s;
+    transform-style: preserve-3d;
+}
+
+.rotate-3d:hover {
+    transform: rotateY(10deg) rotateX(5deg);
+}
+
+/* Efecto de degradado animado en textos */
+@keyframes gradientText {
+    0%, 100% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+}
+
+.gradient-text {
+    background: linear-gradient(
+        45deg,
+        var(--primary-color),
+        var(--secondary-color),
+        var(--accent-color-2),
+        var(--primary-color)
+    );
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: gradientText 5s ease infinite;
+}
+
+/* Efecto de brillo en bordes */
+@keyframes borderGlow {
+    0%, 100% {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 5px var(--primary-color);
+    }
+    33% {
+        border-color: var(--secondary-color);
+        box-shadow: 0 0 10px var(--secondary-color);
+    }
+    66% {
+        border-color: var(--accent-color-2);
+        box-shadow: 0 0 15px var(--accent-color-2);
+    }
+}
+
+.border-glow {
+    border: 2px solid var(--primary-color);
+    animation: borderGlow 3s ease-in-out infinite;
+}
+
+/* Efecto de flip card */
+.flip-card {
+    perspective: 1000px;
+}
+
+.flip-card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.6s;
+    transform-style: preserve-3d;
+}
+
+.flip-card:hover .flip-card-inner {
+    transform: rotateY(180deg);
+}
+
+.flip-card-front,
+.flip-card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+}
+
+.flip-card-back {
+    transform: rotateY(180deg);
+}
+
+/* Animación de fade in con dirección */
+@keyframes fadeInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes fadeInRight {
+    from {
+        opacity: 0;
+        transform: translateX(50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.fade-in-left {
+    animation: fadeInLeft 0.8s ease-out;
+}
+
+.fade-in-right {
+    animation: fadeInRight 0.8s ease-out;
+}
+
+/* Efecto de zoom pulsante */
+@keyframes zoomPulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.03);
+    }
+}
+
+.zoom-pulse {
+    animation: zoomPulse 2s ease-in-out infinite;
+}
+
+/* Reducir animaciones en dispositivos que lo prefieran */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

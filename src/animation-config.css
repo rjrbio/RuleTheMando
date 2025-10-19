@@ -1,0 +1,281 @@
+/**
+ * Configuración de Animaciones - RuleTheMando
+ * 
+ * Este archivo permite personalizar fácilmente los parámetros
+ * de las animaciones sin modificar el código CSS principal
+ */
+
+:root {
+    /* ========================================
+       VELOCIDADES DE ANIMACIÓN
+       ======================================== */
+    
+    /* Velocidades generales */
+    --animation-speed-fast: 0.3s;
+    --animation-speed-normal: 0.6s;
+    --animation-speed-slow: 1s;
+    --animation-speed-very-slow: 2s;
+    
+    /* Velocidades específicas */
+    --hero-animation-duration: 1s;
+    --card-hover-duration: 0.4s;
+    --button-hover-duration: 0.3s;
+    --navbar-transition: 0.5s;
+    --form-focus-duration: 0.3s;
+    --badge-pulse-duration: 2s;
+    --countdown-flip-duration: 1s;
+    
+    /* ========================================
+       FUNCIONES DE TIMING
+       ======================================== */
+    
+    --ease-out-back: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    --ease-in-out-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    
+    /* ========================================
+       INTENSIDAD DE EFECTOS
+       ======================================== */
+    
+    /* Elevación (transform: translateY) */
+    --hover-lift-small: -5px;
+    --hover-lift-medium: -10px;
+    --hover-lift-large: -15px;
+    
+    /* Escala (transform: scale) */
+    --hover-scale-subtle: 1.02;
+    --hover-scale-medium: 1.05;
+    --hover-scale-large: 1.1;
+    
+    /* Rotación (transform: rotate) */
+    --hover-rotate-subtle: 1deg;
+    --hover-rotate-medium: 5deg;
+    --hover-rotate-large: 10deg;
+    
+    /* ========================================
+       OPACIDADES
+       ======================================== */
+    
+    --particle-opacity: 0.5;
+    --overlay-opacity: 0.8;
+    --glassmorphism-opacity: 0.9;
+    --hover-shine-opacity: 0.3;
+    
+    /* ========================================
+       BLUR Y FILTROS
+       ======================================== */
+    
+    --blur-small: 5px;
+    --blur-medium: 10px;
+    --blur-large: 20px;
+    
+    --brightness-hover: 1.1;
+    --contrast-hover: 1.1;
+    
+    /* ========================================
+       SOMBRAS
+       ======================================== */
+    
+    /* Box Shadows */
+    --shadow-small: 0 2px 8px rgba(0, 0, 0, 0.1);
+    --shadow-medium: 0 4px 15px rgba(0, 0, 0, 0.15);
+    --shadow-large: 0 10px 30px rgba(0, 0, 0, 0.2);
+    --shadow-xlarge: 0 20px 40px rgba(0, 0, 0, 0.25);
+    
+    /* Shadow con colores de marca */
+    --shadow-primary: 0 8px 20px rgba(255, 122, 24, 0.3);
+    --shadow-secondary: 0 8px 20px rgba(6, 182, 212, 0.3);
+    --shadow-accent: 0 8px 20px rgba(124, 58, 237, 0.3);
+    
+    /* Text Shadows para efectos de brillo */
+    --text-glow-subtle: 0 0 10px rgba(255, 122, 24, 0.3);
+    --text-glow-medium: 0 0 20px rgba(255, 122, 24, 0.5);
+    --text-glow-strong: 0 0 30px rgba(255, 122, 24, 0.8);
+    
+    /* ========================================
+       PARTÍCULAS Y ELEMENTOS DECORATIVOS
+       ======================================== */
+    
+    --particle-count: 20; /* Número de partículas flotantes */
+    --particle-size-min: 2px;
+    --particle-size-max: 6px;
+    --particle-speed-min: 10s;
+    --particle-speed-max: 30s;
+    
+    /* ========================================
+       BORDER RADIUS
+       ======================================== */
+    
+    --radius-small: 4px;
+    --radius-medium: 8px;
+    --radius-large: 12px;
+    --radius-xlarge: 20px;
+    --radius-round: 50%;
+    
+    /* ========================================
+       Z-INDEX LAYERS
+       ======================================== */
+    
+    --z-background: 0;
+    --z-content: 1;
+    --z-navbar: 1000;
+    --z-modal: 5000;
+    --z-cursor: 9999;
+    --z-particles: 0;
+    
+    /* ========================================
+       RESPONSIVE BREAKPOINTS
+       ======================================== */
+    
+    --breakpoint-mobile: 576px;
+    --breakpoint-tablet: 768px;
+    --breakpoint-desktop: 992px;
+    --breakpoint-wide: 1200px;
+}
+
+/* ========================================
+   MODO RENDIMIENTO
+   Activa esto si necesitas mejor performance
+   ======================================== */
+
+/* Descomenta para reducir animaciones */
+/*
+.performance-mode * {
+    animation-duration: 0.5s !important;
+    transition-duration: 0.2s !important;
+}
+
+.performance-mode .floating-particles,
+.performance-mode .hero-banner::before,
+.performance-mode .particle {
+    display: none !important;
+}
+*/
+
+/* ========================================
+   MODO ACCESIBILIDAD
+   Respeta las preferencias del usuario
+   ======================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    :root {
+        --animation-speed-fast: 0.01ms;
+        --animation-speed-normal: 0.01ms;
+        --animation-speed-slow: 0.01ms;
+        --animation-speed-very-slow: 0.01ms;
+    }
+}
+
+/* ========================================
+   MODO OSCURO (Preparado para futuro)
+   ======================================== */
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        /* Ajustes de opacidad para modo oscuro */
+        --particle-opacity: 0.3;
+        --overlay-opacity: 0.9;
+    }
+}
+
+/* ========================================
+   PERSONALIZACIONES POR DISPOSITIVO
+   ======================================== */
+
+/* Móviles - Reducir efectos pesados */
+@media (max-width: 768px) {
+    :root {
+        --particle-count: 10;
+        --blur-medium: 5px;
+        --blur-large: 10px;
+        --shadow-large: 0 5px 15px rgba(0, 0, 0, 0.15);
+    }
+    
+    /* Desactivar cursor personalizado en móviles */
+    .custom-cursor {
+        display: none !important;
+    }
+}
+
+/* Tablets */
+@media (min-width: 769px) and (max-width: 1024px) {
+    :root {
+        --particle-count: 15;
+    }
+}
+
+/* Desktop */
+@media (min-width: 1025px) {
+    :root {
+        --particle-count: 25;
+    }
+}
+
+/* ========================================
+   CONFIGURACIÓN DE COLORES PARA ANIMACIONES
+   ======================================== */
+
+:root {
+    /* Colores RGB para efectos de sombra y brillo */
+    --rgb-primary: 255, 122, 24;
+    --rgb-secondary: 6, 182, 212;
+    --rgb-accent: 124, 58, 237;
+    
+    /* Variaciones de intensidad */
+    --color-glow-low: rgba(var(--rgb-primary), 0.2);
+    --color-glow-medium: rgba(var(--rgb-primary), 0.4);
+    --color-glow-high: rgba(var(--rgb-primary), 0.6);
+}
+
+/* ========================================
+   UTILIDADES RÁPIDAS
+   ======================================== */
+
+/* Aplicar transición suave a cualquier elemento */
+.smooth-transition {
+    transition: all var(--animation-speed-normal) var(--ease-in-out-smooth);
+}
+
+/* Aplicar elevación al hover */
+.hover-lift:hover {
+    transform: translateY(var(--hover-lift-medium));
+}
+
+/* Aplicar escala al hover */
+.hover-scale:hover {
+    transform: scale(var(--hover-scale-medium));
+}
+
+/* Desactivar todas las animaciones en un elemento */
+.no-animations,
+.no-animations * {
+    animation: none !important;
+    transition: none !important;
+}
+
+/* ========================================
+   NOTAS DE USO
+   ======================================== */
+
+/*
+ * Para personalizar una animación específica:
+ * 
+ * 1. Identifica la variable que quieres cambiar arriba
+ * 2. Modifica su valor según tus necesidades
+ * 3. Los cambios se aplicarán automáticamente
+ * 
+ * Ejemplo:
+ * --card-hover-duration: 0.4s; → --card-hover-duration: 0.8s;
+ * 
+ * Para desactivar una animación específica:
+ * Añade la clase .no-animations al elemento HTML
+ * 
+ * Para mejor rendimiento en dispositivos lentos:
+ * Reduce --particle-count a 5 o 10
+ * Reduce --blur-medium y --blur-large
+ * 
+ * Para efectos más dramáticos:
+ * Aumenta --hover-lift-large
+ * Aumenta --hover-scale-large
+ * Aumenta --shadow-xlarge
+ */
