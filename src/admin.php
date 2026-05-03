@@ -170,6 +170,11 @@ include 'includes/head.php';
                 </a>
             </li>
             <li class="sidebar-nav-item">
+                <a href="migrate.php" class="sidebar-nav-link">
+                    <i class="fas fa-database me-2"></i>Migraciones
+                </a>
+            </li>
+            <li class="sidebar-nav-item">
                 <a href="admin-change-password.php" class="sidebar-nav-link">
                     <i class="fas fa-key me-2"></i>Cambiar contraseña
                 </a>

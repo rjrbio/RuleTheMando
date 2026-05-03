@@ -24,9 +24,10 @@ src/clean*
 src/check*
 src/docker*
 
-# Schema y migraciones (mantener fuera del repo público)
+# Schema (dump completo) fuera del repo. Las migraciones individuales
+# en src/migrations/ SI se versionan: son cambios incrementales sin
+# datos sensibles, vivibles bajo control de versiones.
 src/*.sql
-src/migrations/
 
 # Helpers / scripts auxiliares
 src/helpers/
