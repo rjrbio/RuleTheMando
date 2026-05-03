@@ -27,16 +27,23 @@
     'use strict';
 
     // ----- Loading state en submits -----
-    function applyLoadingState(form) {
-        var btn = form.querySelector('button[type="submit"]');
+    // OJO: si el submit lo dispara un boton con name (e.g. <button name="login">),
+    // ese par name/value SOLO viaja en el POST si el boton NO esta disabled cuando
+    // el navegador construye el FormData. Si lo deshabilitamos sincrono dentro del
+    // submit handler, el name se pierde y los handlers PHP que detectan la accion
+    // con isset($_POST['login']) / ['register'] / ['add_game'] / ['user_action']
+    // no se ejecutan -> la pagina parece "solo recargarse". Por eso diferimos el
+    // disabled a setTimeout(0): el FormData ya esta construido para entonces.
+    function applyLoadingState(form, submitter) {
+        var btn = submitter || form.querySelector('button[type="submit"]');
         if (!btn || btn.disabled) return;
         var original = btn.innerHTML;
         var loadingText = btn.dataset.loadingText || 'Procesando…';
         btn.dataset.originalHtml = original;
-        btn.disabled = true;
         btn.innerHTML =
             '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>' +
             loadingText;
+        setTimeout(function () { btn.disabled = true; }, 0);
         // Restaurar tras 30s por si hay error de red sin recarga
         setTimeout(function () {
             if (btn.dataset.originalHtml) {
@@ -138,7 +145,7 @@
 
         // Loading state (salvo opt-out)
         if (form.dataset.loading !== 'off') {
-            applyLoadingState(form);
+            applyLoadingState(form, btn);
         }
     });
 
