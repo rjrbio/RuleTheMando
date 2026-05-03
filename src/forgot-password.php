@@ -1,8 +1,7 @@
 <?php
 require_once 'config.php';
-require_once 'supabase-config.php';
+require_once 'includes/auth-reset.php';
 
-// Placeholder sencillo para evitar enlace roto
 $message = '';
 $success = false;
 
@@ -15,8 +14,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = 'Demasiados intentos. Espera unos minutos antes de volver a probar.';
     } else {
         rate_limit_record('forgot', $email, true);
-        // De momento, solo mostramos un aviso. Aquí podrías integrar Supabase reset_password.
-        $message = 'Funcionalidad en construcción. Prueba a contactar con soporte o vuelve más tarde.';
+        // Anti-enumeracion: NO revelamos si el email existe o no.
+        // password_reset_create devuelve false si el email no esta en BD,
+        // pero el mensaje al usuario es siempre el mismo.
+        password_reset_create($email);
+        $success = true;
+        $message = 'Si existe una cuenta asociada a ese email, te hemos enviado instrucciones para restablecer la contraseña. Revisa tu bandeja (y la carpeta de spam).';
     }
 }
 
@@ -33,22 +36,32 @@ include 'includes/head.php';
           </div>
           <div class="card-body">
             <?php if ($message): ?>
-              <div class="alert alert-info"><?php echo $message; ?></div>
-            <?php endif; ?>
-            <p class="text-muted">Esta funcionalidad está en construcción. Mientras tanto, puedes:</p>
-            <ul>
-              <li>Revisar si tu email está verificado. Si no lo está, usa <a href="resend-verification.php">reenviar verificación</a>.</li>
-              <li>Contactar con soporte: <a href="mailto:support@rulethemando.com">support@rulethemando.com</a></li>
-            </ul>
-            <form method="post" class="mt-3">
-              <?= csrf_field() ?>
-              <div class="form-floating mb-3">
-                <input type="email" class="form-control" id="email" name="email" placeholder="tu@email.com" required>
-                <label for="email"><i class="fas fa-envelope me-2"></i>Email</label>
+              <div class="alert alert-<?= $success ? 'success' : 'info' ?>" role="alert">
+                <i class="fas fa-<?= $success ? 'check-circle' : 'info-circle' ?> me-2" aria-hidden="true"></i>
+                <?= e($message) ?>
               </div>
-              <button class="btn btn-secondary" type="submit">Enviar</button>
-              <a class="btn btn-outline-primary ms-2" href="login.php">Volver al login</a>
-            </form>
+            <?php endif; ?>
+
+            <?php if (!$success): ?>
+              <p class="text-muted small mb-3">
+                Introduce el email asociado a tu cuenta y te enviaremos un enlace para restablecer la contraseña.
+              </p>
+              <form method="post">
+                <?= csrf_field() ?>
+                <div class="form-floating mb-3">
+                  <input type="email" class="form-control" id="email" name="email" placeholder="tu@email.com" value="<?= e($_POST['email'] ?? '') ?>" required autofocus>
+                  <label for="email"><i class="fas fa-envelope me-2" aria-hidden="true"></i>Email</label>
+                </div>
+                <button class="btn btn-primary" type="submit">
+                  <i class="fas fa-paper-plane me-2" aria-hidden="true"></i>Enviar enlace
+                </button>
+                <a class="btn btn-outline-secondary ms-2" href="login.php">Volver al login</a>
+              </form>
+            <?php else: ?>
+              <a class="btn btn-outline-secondary" href="login.php">
+                <i class="fas fa-arrow-left me-2" aria-hidden="true"></i>Volver al login
+              </a>
+            <?php endif; ?>
           </div>
         </div>
       </div>
