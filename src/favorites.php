@@ -123,12 +123,26 @@ $headerTitle = 'Mi Top de Favoritos';
 $headerSubtitle = 'Tu ranking personal: ordena tus juegos preferidos como quieras';
 $headerIcon = 'fas fa-trophy';
 include 'includes/page-header.php';
+include 'includes/flash.php';
 ?>
 
 <main class="container my-4">
 
   <?php if (empty($favs)): ?>
-    <div class="alert alert-info">Aún no tienes favoritos. Añade juegos desde su ficha con el botón “Añadir a favoritos”.</div>
+    <div class="card border-0 shadow-sm text-center py-5">
+      <div class="card-body">
+        <div class="mb-3">
+          <i class="fas fa-trophy text-muted" style="font-size: 3rem;" aria-hidden="true"></i>
+        </div>
+        <h2 class="h5 fw-bold mb-2">Tu Top está vacío</h2>
+        <p class="text-muted mb-4 mx-auto" style="max-width: 480px;">
+          Añade juegos a tus favoritos desde la ficha de cada uno y luego ord&eacute;nalos aquí como tu ranking personal.
+        </p>
+        <a href="games.php" class="btn btn-primary">
+          <i class="fas fa-list me-2" aria-hidden="true"></i>Explorar el catálogo
+        </a>
+      </div>
+    </div>
   <?php else: ?>
     <form method="post" id="orderForm">
       <?= csrf_field() ?>
@@ -170,7 +184,7 @@ include 'includes/page-header.php';
                       <div class="input-group input-group-sm" style="width: 100px;">
                         <input type="number" class="form-control" min="1" name="pos[<?php echo (int)$f['game_id']; ?>]" value="<?php echo (int)$pos; ?>" aria-label="Mover a posición">
                       </div>
-                      <button name="remove_id" value="<?php echo (int)$f['game_id']; ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Quitar de favoritos?');"><i class="fas fa-trash"></i></button>
+                      <button name="remove_id" value="<?php echo (int)$f['game_id']; ?>" class="btn btn-sm btn-outline-danger" type="submit" data-confirm="¿Quitar de favoritos?"><i class="fas fa-trash"></i></button>
                     </div>
                   </td>
                 </tr>

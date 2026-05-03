@@ -107,6 +107,7 @@ $headerTitle = 'Catálogo de juegos';
 $headerSubtitle = 'Todos los videojuegos disponibles, con filtros y orden';
 $headerIcon = 'fas fa-list';
 include 'includes/page-header.php';
+include 'includes/flash.php';
 ?>
 
   <main class="container my-4">

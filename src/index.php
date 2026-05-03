@@ -42,6 +42,7 @@ include 'includes/head.php';
 $activePage = 'home';
 $showSearch = true;
 include 'includes/navbar.php';
+include 'includes/flash.php';
 ?>
 
     <main class="container my-5">

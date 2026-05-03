@@ -12,13 +12,9 @@ $message = '';
 $success = false;
 $openAddTab = false; // Para abrir el tab de alta cuando haya errores
 $oldAdd = []; // Para repoblar el formulario en caso de error
-
-// Cargar mensajes flash (si existen)
-if (!empty($_SESSION['flash_message'])) {
-    $message = $_SESSION['flash_message'];
-    $success = !empty($_SESSION['flash_success']);
-    unset($_SESSION['flash_message'], $_SESSION['flash_success']);
-}
+// Los mensajes flash via $_SESSION['flash_*'] los pinta includes/flash.php
+// como toast. La variable $message local solo se usa para errores de
+// validacion sin redireccion (PRG falla en validacion -> render con error).
 
 // Crear directorio de uploads si no existe
 if (!file_exists(UPLOAD_PATH)) {
@@ -140,6 +136,7 @@ $extraHead = ob_get_clean();
 include 'includes/head.php';
 ?>
 <body>
+<?php include 'includes/flash.php'; ?>
     <!-- Sidebar -->
     <nav class="admin-sidebar">
         <a href="index.php" class="sidebar-brand">
@@ -665,7 +662,7 @@ include 'includes/head.php';
                                             <td>
                                                 <div class="btn-group btn-group-sm" role="group">
                                                     <button class="btn btn-outline-primary" type="button" onclick="toggleAdminReview('<?php echo (int)$rv['user_id'] . '_' . (int)$rv['game_id']; ?>')"><i class="fas fa-edit"></i></button>
-                                                    <form method="post" onsubmit="return confirm('¿Eliminar crítica?');">
+                                                    <form method="post" data-confirm="¿Eliminar esta crítica?">
                                                         <?= csrf_field() ?>
                                                         <input type="hidden" name="review_action" value="delete">
                                                         <input type="hidden" name="user_id" value="<?php echo (int)$rv['user_id']; ?>">

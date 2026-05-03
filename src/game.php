@@ -253,6 +253,7 @@ include 'includes/head.php';
 <?php
 $activePage = 'games';
 include 'includes/navbar.php';
+include 'includes/flash.php';
 ?>
 
   <header class="game-hero py-4">
@@ -349,7 +350,7 @@ include 'includes/navbar.php';
               <div class="d-flex gap-2 mt-2">
                 <button class="btn btn-primary btn-sm" type="submit"><i class="fas fa-save me-1"></i> Guardar crítica</button>
                 <?php if (!empty($myReview)): ?>
-                  <button class="btn btn-outline-danger btn-sm" name="contenido" value="" type="submit" onclick="return confirm('¿Eliminar tu crítica?');"><i class="fas fa-trash me-1"></i> Eliminar</button>
+                  <button class="btn btn-outline-danger btn-sm" name="contenido" value="" type="submit" data-confirm="¿Eliminar tu crítica?"><i class="fas fa-trash me-1"></i> Eliminar</button>
                 <?php endif; ?>
               </div>
             </form>
@@ -388,7 +389,7 @@ include 'includes/navbar.php';
                       <?php if (isAdmin()): ?>
                       <div class="d-flex gap-2">
                         <button class="btn btn-sm btn-outline-primary" type="button" onclick="toggleEditReview(<?php echo (int)$rv['user_id']; ?>)"><i class="fas fa-edit"></i></button>
-                        <form method="post" onsubmit="return confirm('¿Eliminar crítica de este usuario?');">
+                        <form method="post" data-confirm="¿Eliminar la crítica de este usuario?">
                           <?= csrf_field() ?>
                           <input type="hidden" name="admin_review_action" value="delete">
                           <input type="hidden" name="game_id" value="<?php echo (int)$juego['id']; ?>">

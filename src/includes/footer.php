@@ -11,6 +11,7 @@ if (is_string($extraScripts)) { $extraScripts = [$extraScripts]; }
 $extraScriptsHtml = $extraScriptsHtml ?? '';
 ?>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+  <script src="app-ui.js"></script>
 <?php foreach ($extraScripts as $script): ?>
   <script src="<?= e($script) ?>"></script>
 <?php endforeach; ?>
