@@ -19,12 +19,12 @@ $showSearch = $showSearch ?? false;
     </button>
     <div class="collapse navbar-collapse" id="mainNav">
 <?php if ($showSearch): ?>
-      <form class="d-flex me-auto ms-3" method="GET" action="index.php" role="search">
+      <form class="d-flex me-auto ms-3" method="GET" action="games.php" role="search">
         <div class="input-group">
-          <input class="form-control" type="search" name="buscar" placeholder="Buscar juegos…"
-                 value="<?= e($_GET['buscar'] ?? '') ?>" aria-label="Buscar juegos">
+          <input class="form-control" type="search" name="q" placeholder="Buscar juegos…"
+                 value="<?= e($_GET['q'] ?? $_GET['buscar'] ?? '') ?>" aria-label="Buscar juegos">
           <button class="btn btn-outline-light" type="submit" aria-label="Buscar">
-            <i class="fas fa-search"></i>
+            <i class="fas fa-search" aria-hidden="true"></i>
           </button>
         </div>
       </form>

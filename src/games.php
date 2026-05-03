@@ -102,6 +102,11 @@ include 'includes/head.php';
 <?php
 $activePage = 'games';
 include 'includes/navbar.php';
+
+$headerTitle = 'Catálogo de juegos';
+$headerSubtitle = 'Todos los videojuegos disponibles, con filtros y orden';
+$headerIcon = 'fas fa-list';
+include 'includes/page-header.php';
 ?>
 
   <main class="container my-4">
@@ -272,12 +277,7 @@ include 'includes/navbar.php';
     </div>
   </main>
 
-  <footer class="bg-dark text-light py-4">
-    <div class="container d-flex justify-content-between">
-      <span>&copy; <?php echo date('Y'); ?> <?php echo SITE_NAME; ?></span>
-      <a href="index.php" class="text-muted">Inicio</a>
-    </div>
-  </footer>
+  <?php include 'includes/site-footer.php'; ?>
 
   <?php
   ob_start();

@@ -463,12 +463,7 @@ include 'includes/navbar.php';
     </div>
   </main>
 
-  <footer class="bg-dark text-light py-4">
-    <div class="container d-flex justify-content-between">
-      <span>&copy; <?php echo date('Y'); ?> <?php echo SITE_NAME; ?></span>
-      <a href="index.php" class="text-muted">Inicio</a>
-    </div>
-  </footer>
+  <?php include 'includes/site-footer.php'; ?>
 
   <?php
   ob_start();

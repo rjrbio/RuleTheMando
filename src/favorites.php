@@ -118,12 +118,14 @@ include 'includes/head.php';
 <?php
 $activePage = 'favorites';
 include 'includes/navbar.php';
+
+$headerTitle = 'Mi Top de Favoritos';
+$headerSubtitle = 'Tu ranking personal: ordena tus juegos preferidos como quieras';
+$headerIcon = 'fas fa-trophy';
+include 'includes/page-header.php';
 ?>
 
 <main class="container my-4">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="h4 mb-0"><i class="fas fa-trophy text-warning me-2"></i>Mi Top de Favoritos</h1>
-  </div>
 
   <?php if (empty($favs)): ?>
     <div class="alert alert-info">Aún no tienes favoritos. Añade juegos desde su ficha con el botón “Añadir a favoritos”.</div>
@@ -185,4 +187,5 @@ include 'includes/navbar.php';
   <?php endif; ?>
 </main>
 
+<?php include 'includes/site-footer.php'; ?>
 <?php include 'includes/footer.php'; ?>
