@@ -99,7 +99,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Load favorites with game info (slug solo si existe la columna)
 $hasSlug = function_exists('hasColumn') ? hasColumn($pdo, 'videojuegos', 'slug') : false;
 $selectSlug = $hasSlug ? ', v.slug' : '';
-$stmt = $pdo->prepare('SELECT f.game_id, f.posicion, v.titulo, v.imagen, v.genero, v.plataforma' . $selectSlug . ' FROM favoritos f JOIN videojuegos v ON v.id=f.game_id WHERE f.user_id=? ORDER BY f.posicion ASC');
+
+// Paginacion: 15 favoritos por pagina. Las posiciones que se renderizan
+// son las reales (campo posicion), no el indice del array — asi mover
+// un elemento entre paginas no cambia su numero visual.
+$favPerPage = 15;
+$cntStmt = $pdo->prepare('SELECT COUNT(*) FROM favoritos WHERE user_id = ?');
+$cntStmt->execute([$uid]);
+$totalFavs = (int)$cntStmt->fetchColumn();
+$favPages = max(1, (int)ceil($totalFavs / $favPerPage));
+$favPage = isset($_GET['page']) && is_numeric($_GET['page'])
+    ? max(1, min($favPages, (int)$_GET['page']))
+    : 1;
+$favOffset = ($favPage - 1) * $favPerPage;
+
+$stmt = $pdo->prepare(
+    'SELECT f.game_id, f.posicion, v.titulo, v.imagen, v.genero, v.plataforma' . $selectSlug .
+    ' FROM favoritos f JOIN videojuegos v ON v.id=f.game_id
+      WHERE f.user_id=? ORDER BY f.posicion ASC
+      LIMIT ' . (int)$favPerPage . ' OFFSET ' . (int)$favOffset
+);
 $stmt->execute([$uid]);
 $favs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -159,7 +178,7 @@ include 'includes/flash.php';
                 </tr>
               </thead>
               <tbody>
-              <?php foreach ($favs as $i => $f): $pos=$i+1; $slug = isset($f['slug']) ? $f['slug'] : ''; $href='game.php?'.($slug?('slug='.urlencode($slug)):('id='.(int)$f['game_id'])); ?>
+              <?php foreach ($favs as $f): $pos=(int)$f['posicion']; $slug = isset($f['slug']) ? $f['slug'] : ''; $href='game.php?'.($slug?('slug='.urlencode($slug)):('id='.(int)$f['game_id'])); ?>
                 <tr class="<?php echo $pos===1 ? 'podium-1' : ($pos===2 ? 'podium-2' : ($pos===3 ? 'podium-3' : '')); ?>">
                   <td>
                     <?php if ($pos===1): ?><i class="fas fa-medal text-warning me-1"></i><?php endif; ?>
@@ -192,9 +211,30 @@ include 'includes/flash.php';
               </tbody>
             </table>
           </div>
-          <div class="d-flex justify-content-end">
-            <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> Guardar cambios</button>
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <small class="text-muted">
+              Mostrando <?= count($favs) ?> de <?= (int)$totalFavs ?>
+              <?= $totalFavs === 1 ? 'favorito' : 'favoritos' ?>
+            </small>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1" aria-hidden="true"></i> Guardar cambios</button>
           </div>
+<?php if ($favPages > 1): ?>
+          <nav aria-label="Paginación de favoritos" class="mt-3">
+            <ul class="pagination pagination-sm justify-content-center mb-0">
+              <li class="page-item <?= $favPage === 1 ? 'disabled' : '' ?>">
+                <a class="page-link" href="?page=<?= $favPage - 1 ?>" aria-label="Anterior">&laquo;</a>
+              </li>
+<?php for ($p = 1; $p <= $favPages; $p++): ?>
+              <li class="page-item <?= $p === $favPage ? 'active' : '' ?>">
+                <a class="page-link" href="?page=<?= $p ?>"><?= $p ?></a>
+              </li>
+<?php endfor; ?>
+              <li class="page-item <?= $favPage === $favPages ? 'disabled' : '' ?>">
+                <a class="page-link" href="?page=<?= $favPage + 1 ?>" aria-label="Siguiente">&raquo;</a>
+              </li>
+            </ul>
+          </nav>
+<?php endif; ?>
         </div>
       </div>
     </form>
