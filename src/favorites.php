@@ -18,6 +18,7 @@ try {
 
 // Save new order (nuevo: por posiciones), mantiene compatibilidad con 'order[]'
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  csrf_check();
   // Quitar un favorito
   if (isset($_POST['remove_id']) && is_numeric($_POST['remove_id'])) {
     $gid = (int)$_POST['remove_id'];
@@ -150,6 +151,7 @@ $favs = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <div class="alert alert-info">Aún no tienes favoritos. Añade juegos desde su ficha con el botón “Añadir a favoritos”.</div>
   <?php else: ?>
     <form method="post" id="orderForm">
+      <?= csrf_field() ?>
       <div class="card">
         <div class="card-body">
           <div class="table-responsive">

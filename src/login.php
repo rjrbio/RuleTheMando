@@ -20,6 +20,7 @@ if (isLoggedIn()) {
 
 // Procesar login
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
+    csrf_check();
     $username = sanitize($_POST['username']);
     $password = $_POST['password'];
 
@@ -73,6 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
 
 // Procesar registro
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
+    csrf_check();
     $username = sanitize($_POST['reg_username']);
     $email = sanitize($_POST['reg_email']);
     $password = $_POST['reg_password'];
@@ -89,8 +91,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
         $error = 'El nombre de usuario solo puede contener letras, números, guiones y guiones bajos.';
     } elseif ($password !== $confirm_password) {
         $error = 'Las contraseñas no coinciden.';
-    } elseif (strlen($password) < 6) {
-        $error = 'La contraseña debe tener al menos 6 caracteres.';
+    } elseif (strlen($password) < 8) {
+        $error = 'La contraseña debe tener al menos 8 caracteres.';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = 'El email no es válido.';
     } else {
@@ -346,6 +348,7 @@ function sendVerificationEmailLocal($email, $username, $token)
                     <!-- Login Tab -->
                     <div class="tab-pane fade show active" id="login" role="tabpanel">
                         <form method="POST" class="needs-validation" novalidate>
+                            <?= csrf_field() ?>
                             <div class="form-floating mb-3">
                                 <input type="text" class="form-control" id="username" name="username" placeholder="Nombre de usuario"
                                     required>
@@ -383,6 +386,7 @@ function sendVerificationEmailLocal($email, $username, $token)
                     <!-- Register Tab -->
                     <div class="tab-pane fade" id="register" role="tabpanel">
                         <form method="POST" class="needs-validation" novalidate>
+                            <?= csrf_field() ?>
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-floating mb-3">
@@ -408,10 +412,10 @@ function sendVerificationEmailLocal($email, $username, $token)
 
                             <div class="form-floating mb-3">
                                 <input type="password" class="form-control" id="reg_password" name="reg_password"
-                                    placeholder="Contraseña" minlength="6" required>
+                                    placeholder="Contraseña" minlength="8" required>
                                 <label for="reg_password"><i class="fas fa-lock me-2"></i>Contraseña</label>
                                 <div class="invalid-feedback">
-                                    La contraseña debe tener al menos 6 caracteres.
+                                    La contraseña debe tener al menos 8 caracteres.
                                 </div>
                             </div>
 

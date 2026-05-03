@@ -59,6 +59,7 @@ try {
 
 // Procesar acciones de usuario (POST) para rating y favoritos
 if (isLoggedIn() && $_SERVER['REQUEST_METHOD'] === 'POST') {
+  csrf_check();
   $uid = (int)$_SESSION['user_id'];
   // Crear/editar crítica del usuario
   if (isset($_POST['set_review'])) {
@@ -363,6 +364,7 @@ try {
               <?php if (isLoggedIn()): ?>
                 <?php if (!$juego['es_futuro_lanzamiento']): ?>
                   <form class="d-flex align-items-center gap-2" method="post">
+                    <?= csrf_field() ?>
                     <input type="hidden" name="set_rating" value="1">
                     <input type="hidden" name="game_id" value="<?php echo (int)$juego['id']; ?>">
                     <label for="rating" class="small text-muted mb-0">Tu nota</label>
@@ -374,6 +376,7 @@ try {
                     <button class="btn btn-sm btn-outline-primary" type="submit"><i class="fas fa-star me-1"></i> Guardar</button>
                   </form>
                   <form method="post">
+                    <?= csrf_field() ?>
                     <input type="hidden" name="game_id" value="<?php echo (int)$juego['id']; ?>">
                     <?php if ($isFav): ?>
                       <input type="hidden" name="fav_action" value="remove">
@@ -419,6 +422,7 @@ try {
 
           <?php if (isLoggedIn() && !$juego['es_futuro_lanzamiento'] && $myRating !== null): ?>
             <form method="post" class="mb-3">
+              <?= csrf_field() ?>
               <input type="hidden" name="set_review" value="1">
               <input type="hidden" name="game_id" value="<?php echo (int)$juego['id']; ?>">
               <label class="form-label">Tu crítica (una por juego; puedes editarla cuando quieras)</label>
@@ -447,6 +451,7 @@ try {
                     <div class="ms-2 d-flex gap-2 align-items-start">
                       <?php if (isLoggedIn() && (int)$rv['user_id'] !== (int)($_SESSION['user_id'] ?? 0)): ?>
                         <form method="post" class="d-inline">
+                          <?= csrf_field() ?>
                           <input type="hidden" name="game_id" value="<?php echo (int)$juego['id']; ?>">
                           <input type="hidden" name="review_user_id" value="<?php echo (int)$rv['user_id']; ?>">
                           <?php $liked = !empty($rv['i_liked']); $likes = (int)($rv['likes_count'] ?? 0); ?>
@@ -465,6 +470,7 @@ try {
                       <div class="d-flex gap-2">
                         <button class="btn btn-sm btn-outline-primary" type="button" onclick="toggleEditReview(<?php echo (int)$rv['user_id']; ?>)"><i class="fas fa-edit"></i></button>
                         <form method="post" onsubmit="return confirm('¿Eliminar crítica de este usuario?');">
+                          <?= csrf_field() ?>
                           <input type="hidden" name="admin_review_action" value="delete">
                           <input type="hidden" name="game_id" value="<?php echo (int)$juego['id']; ?>">
                           <input type="hidden" name="target_user_id" value="<?php echo (int)$rv['user_id']; ?>">
@@ -477,6 +483,7 @@ try {
                   <div class="mt-2" id="review_view_<?php echo (int)$rv['user_id']; ?>" style="white-space: pre-wrap;"><?php echo nl2br(htmlspecialchars($rv['contenido'])); ?></div>
                   <?php if (isAdmin()): ?>
                     <form method="post" id="review_edit_<?php echo (int)$rv['user_id']; ?>" class="mt-2" style="display:none;">
+                      <?= csrf_field() ?>
                       <input type="hidden" name="admin_review_action" value="update">
                       <input type="hidden" name="game_id" value="<?php echo (int)$juego['id']; ?>">
                       <input type="hidden" name="target_user_id" value="<?php echo (int)$rv['user_id']; ?>">

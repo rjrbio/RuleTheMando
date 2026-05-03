@@ -7,6 +7,7 @@ $message = '';
 $success = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrf_check();
     $email = sanitize($_POST['email'] ?? '');
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $message = 'Por favor, introduce un email válido.';
@@ -43,6 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               <li>Contactar con soporte: <a href="mailto:support@rulethemando.com">support@rulethemando.com</a></li>
             </ul>
             <form method="post" class="mt-3">
+              <?= csrf_field() ?>
               <div class="form-floating mb-3">
                 <input type="email" class="form-control" id="email" name="email" placeholder="tu@email.com" required>
                 <label for="email"><i class="fas fa-envelope me-2"></i>Email</label>

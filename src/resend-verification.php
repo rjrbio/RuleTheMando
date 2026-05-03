@@ -6,6 +6,7 @@ $message = '';
 $success = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' || isset($_GET['email'])) {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') { csrf_check(); }
     $email = isset($_POST['email']) ? sanitize($_POST['email']) : sanitize($_GET['email']);
 
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -178,6 +179,7 @@ function sendVerificationEmailLocal($email, $username, $token)
 
             <?php if (!$success): ?>
                 <form method="POST" class="needs-validation" novalidate>
+                    <?= csrf_field() ?>
                     <div class="form-floating mb-4">
                         <input type="email" class="form-control" id="email" name="email" placeholder="Email" required
                             value="<?php echo isset($_GET['email']) ? htmlspecialchars($_GET['email']) : ''; ?>">
