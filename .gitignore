@@ -16,9 +16,6 @@ src/supabase*
 src/.env
 src/*.env
 
-# Panel admin (no se versiona en repo público)
-src/admin*
-
 # Endpoints de debug/test/dev — nunca al repo
 src/debug*
 src/dev*
