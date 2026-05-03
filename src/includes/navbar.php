@@ -9,10 +9,12 @@
 $activePage = $activePage ?? '';
 $showSearch = $showSearch ?? false;
 ?>
+<a class="skip-link" href="#main-content">Saltar al contenido</a>
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
   <div class="container">
-    <a class="navbar-brand fw-bold" href="index.php">
-      <i class="fas fa-gamepad me-2"></i><?= e(SITE_NAME) ?>
+    <a class="navbar-brand fw-bold d-flex align-items-center" href="index.php">
+      <img src="media/rulethemando.png" alt="" width="32" height="32" class="me-2 rounded" style="object-fit: cover;" aria-hidden="true">
+      <span><?= e(SITE_NAME) ?></span>
     </a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
       <span class="navbar-toggler-icon"></span>
@@ -79,3 +81,4 @@ $showSearch = $showSearch ?? false;
     </div>
   </div>
 </nav>
+<div id="main-content" tabindex="-1"></div>

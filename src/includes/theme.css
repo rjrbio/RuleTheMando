@@ -1,0 +1,150 @@
+/* Theme: paleta como CSS variables, modo oscuro automatico, skip-link y
+   focus visible. Cargado por includes/head.php antes de styles.css para
+   que styles.css pueda referenciar las variables si quiere. */
+
+:root {
+  --color-primary: #6366f1;
+  --color-primary-hover: #4f46e5;
+  --color-secondary: #8b5cf6;
+  --gradient-primary: linear-gradient(135deg, #6366f1, #8b5cf6);
+  --gradient-dark: linear-gradient(135deg, #1f2937, #374151);
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-info: #3b82f6;
+
+  /* Superficies en modo claro */
+  --bg-body: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-muted: #f1f5f9;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --border-color: rgba(0, 0, 0, 0.08);
+  --shadow-card: 0 4px 6px rgba(0, 0, 0, 0.05);
+  --shadow-card-hover: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Modo oscuro automatico segun preferencia del sistema. Solo redefine
+   las superficies; los gradientes corporativos (primary, dark) se
+   mantienen porque son parte del branding. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-body: #0b1120;
+    --bg-surface: #1e293b;
+    --bg-muted: #0f172a;
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --border-color: rgba(255, 255, 255, 0.08);
+    --shadow-card: 0 4px 6px rgba(0, 0, 0, 0.3);
+    --shadow-card-hover: 0 10px 25px rgba(0, 0, 0, 0.5);
+  }
+
+  body { background-color: var(--bg-body); color: var(--text-primary); }
+  body.bg-light { background-color: var(--bg-body) !important; }
+
+  .card,
+  .toast,
+  .modal-content,
+  .dropdown-menu {
+    background-color: var(--bg-surface);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+  }
+  .card-header { background-color: rgba(255, 255, 255, 0.04); border-bottom-color: var(--border-color); }
+  .card-footer { background-color: rgba(255, 255, 255, 0.04); border-top-color: var(--border-color); }
+
+  .text-muted { color: var(--text-secondary) !important; }
+  .text-dark { color: var(--text-primary) !important; }
+  .border, .border-top, .border-bottom, .border-start, .border-end { border-color: var(--border-color) !important; }
+
+  hr { border-color: var(--border-color); opacity: 1; }
+
+  .form-control, .form-select, .input-group-text {
+    background-color: var(--bg-muted);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+  }
+  .form-control:focus, .form-select:focus {
+    background-color: var(--bg-muted);
+    color: var(--text-primary);
+  }
+  .form-control::placeholder { color: var(--text-secondary); }
+
+  .table {
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--text-primary);
+    --bs-table-border-color: var(--border-color);
+    --bs-table-striped-bg: rgba(255, 255, 255, 0.02);
+    --bs-table-hover-bg: rgba(255, 255, 255, 0.04);
+    color: var(--text-primary);
+  }
+  .table-light { --bs-table-bg: rgba(255, 255, 255, 0.04); }
+
+  .dropdown-item { color: var(--text-primary); }
+  .dropdown-item:hover, .dropdown-item:focus { background-color: rgba(255, 255, 255, 0.06); color: var(--text-primary); }
+  .dropdown-divider { border-color: var(--border-color); }
+
+  .alert-info { background-color: rgba(59, 130, 246, 0.12); color: #93c5fd; border-color: rgba(59, 130, 246, 0.25); }
+
+  .bg-light { background-color: var(--bg-surface) !important; color: var(--text-primary); }
+  .bg-warning-subtle { background-color: rgba(245, 158, 11, 0.15) !important; color: #fbbf24 !important; }
+}
+
+/* Skip-link: oculto hasta que recibe foco (usuarios de teclado/lectores
+   de pantalla pueden saltar al contenido principal). */
+.skip-link {
+  position: absolute;
+  top: -48px;
+  left: 8px;
+  z-index: 9999;
+  padding: 10px 18px;
+  background: var(--color-primary);
+  color: #fff !important;
+  text-decoration: none;
+  border-radius: 0 0 8px 8px;
+  font-weight: 600;
+  transition: top 0.18s ease;
+}
+.skip-link:focus,
+.skip-link:focus-visible {
+  top: 0;
+  outline: 3px solid #fff;
+  outline-offset: -3px;
+}
+
+/* Foco visible reforzado para navegacion por teclado.
+   Bootstrap usa box-shadow; reemplazamos por outline para mejor
+   contraste con el fondo del modo oscuro. */
+:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
+}
+.btn:focus-visible,
+.form-control:focus-visible,
+.form-select:focus-visible,
+.dropdown-toggle:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+/* Microinteracciones consistentes */
+.card { transition: transform 0.18s ease, box-shadow 0.18s ease; }
+.btn { transition: transform 0.12s ease, box-shadow 0.18s ease, background-color 0.18s ease; }
+.btn:hover:not(:disabled) { transform: translateY(-1px); }
+
+/* Respetar prefers-reduced-motion: anular animaciones largas y
+   transformaciones notables. Bootstrap 5 ya respeta esto en algunos
+   sitios; reforzamos globalmente. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .btn:hover:not(:disabled) { transform: none; }
+}
+
+/* Anchor para skip-link: target invisible que recibe foco al saltar. */
+#main-content { display: block; height: 0; outline: none; }
