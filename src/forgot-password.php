@@ -11,7 +11,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = sanitize($_POST['email'] ?? '');
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $message = 'Por favor, introduce un email válido.';
+    } elseif (rate_limit_blocked('forgot', $email, 3, 60)) {
+        $message = 'Demasiados intentos. Espera unos minutos antes de volver a probar.';
     } else {
+        rate_limit_record('forgot', $email, true);
         // De momento, solo mostramos un aviso. Aquí podrías integrar Supabase reset_password.
         $message = 'Funcionalidad en construcción. Prueba a contactar con soporte o vuelve más tarde.';
     }

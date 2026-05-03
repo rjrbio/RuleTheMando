@@ -11,7 +11,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || isset($_GET['email'])) {
 
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $message = 'Por favor, ingresa un email válido.';
+    } elseif (rate_limit_blocked('resend', $email, 3, 60)) {
+        $message = 'Has solicitado demasiados reenvíos. Espera unos minutos antes de volver a probar.';
     } else {
+        rate_limit_record('resend', $email, true);
         // Buscar usuario por email
         $stmt = $pdo->prepare("SELECT * FROM usuarios WHERE email = ?");
         $stmt->execute([$email]);

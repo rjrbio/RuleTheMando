@@ -26,14 +26,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
 
     if (empty($username) || empty($password)) {
         $error = 'Por favor, completa todos los campos.';
+    } elseif (rate_limit_blocked('login', $username)) {
+        $error = 'Demasiados intentos fallidos. Espera unos minutos antes de volver a intentarlo.';
     } else {
         $stmt = $pdo->prepare("SELECT * FROM usuarios WHERE username = ?");
         $stmt->execute([$username]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
+        $passwordOk = false;
         if ($user) {
-            $passwordOk = false;
-            
             // 1) Intento normal con hash (bcrypt/argon2)
             if (password_verify($password, $user['password'])) {
                 $passwordOk = true;
@@ -49,22 +50,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
                     }
                 }
             }
+        }
 
-            if ($passwordOk) {
-                // Permitir acceso a administradores aunque no tengan email verificado
-                $requiresVerification = (!$user['email_verified']) && ($user['role'] !== 'admin');
-                if ($requiresVerification) {
-                    $error = 'Debes verificar tu email antes de iniciar sesión. <a href="resend-verification.php?email=' . urlencode($user['email']) . '">Reenviar email de verificación</a>';
-                } else {
-                    session_regenerate_id(true);
-                    $_SESSION['user_id'] = $user['id'];
-                    $_SESSION['username'] = $user['username'];
-                    $_SESSION['email'] = $user['email'];
-                    $_SESSION['role'] = $user['role'];
-                    redirect('index.php');
-                }
+        // Registrar intento (exito o fallo) para el rate limiting
+        rate_limit_record('login', $username, $passwordOk);
+
+        if ($passwordOk) {
+            // Permitir acceso a administradores aunque no tengan email verificado
+            $requiresVerification = (!$user['email_verified']) && ($user['role'] !== 'admin');
+            if ($requiresVerification) {
+                $error = 'Debes verificar tu email antes de iniciar sesión. <a href="resend-verification.php?email=' . urlencode($user['email']) . '">Reenviar email de verificación</a>';
             } else {
-                $error = 'Nombre de usuario o contraseña incorrectos.';
+                session_regenerate_id(true);
+                $_SESSION['user_id'] = $user['id'];
+                $_SESSION['username'] = $user['username'];
+                $_SESSION['email'] = $user['email'];
+                $_SESSION['role'] = $user['role'];
+                redirect('index.php');
             }
         } else {
             $error = 'Nombre de usuario o contraseña incorrectos.';
