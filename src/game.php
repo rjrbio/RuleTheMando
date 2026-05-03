@@ -1,61 +1,8 @@
 <?php
 require_once 'config.php';
+require_once 'includes/db.php';
 
-// Asegurar tablas para favoritos y valoraciones
-try {
-  $pdo->exec("CREATE TABLE IF NOT EXISTS valoraciones (
-    user_id INT NOT NULL,
-    game_id INT NOT NULL,
-    rating TINYINT UNSIGNED NOT NULL,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (user_id, game_id),
-    INDEX (game_id)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
-  $pdo->exec("CREATE TABLE IF NOT EXISTS favoritos (
-    user_id INT NOT NULL,
-    game_id INT NOT NULL,
-    posicion INT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (user_id, game_id),
-    UNIQUE KEY uniq_user_pos (user_id, posicion),
-    INDEX (user_id),
-    INDEX (game_id)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
-  // Tabla de críticas: una por usuario y juego
-  $pdo->exec("CREATE TABLE IF NOT EXISTS criticas (
-    user_id INT NOT NULL,
-    game_id INT NOT NULL,
-    contenido TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (user_id, game_id),
-    INDEX (game_id),
-    INDEX (user_id)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
-  // Tabla de likes de críticas (un like por usuario por crítica)
-  $pdo->exec("CREATE TABLE IF NOT EXISTS critica_likes (
-    review_user_id INT NOT NULL,
-    game_id INT NOT NULL,
-    liker_user_id INT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (review_user_id, game_id, liker_user_id),
-    INDEX (game_id),
-    INDEX (review_user_id),
-    INDEX (liker_user_id)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
-  // Añadir FKs con ON DELETE CASCADE (ignorar si ya existen)
-  try { $pdo->exec("ALTER TABLE criticas ADD CONSTRAINT fk_criticas_user FOREIGN KEY (user_id) REFERENCES usuarios(id) ON DELETE CASCADE"); } catch (Exception $e) {}
-  try { $pdo->exec("ALTER TABLE criticas ADD CONSTRAINT fk_criticas_game FOREIGN KEY (game_id) REFERENCES videojuegos(id) ON DELETE CASCADE"); } catch (Exception $e) {}
-  try { $pdo->exec("ALTER TABLE critica_likes ADD CONSTRAINT fk_cl_review FOREIGN KEY (review_user_id, game_id) REFERENCES criticas(user_id, game_id) ON DELETE CASCADE"); } catch (Exception $e) {}
-  try { $pdo->exec("ALTER TABLE critica_likes ADD CONSTRAINT fk_cl_liker FOREIGN KEY (liker_user_id) REFERENCES usuarios(id) ON DELETE CASCADE"); } catch (Exception $e) {}
-  // Opcional: FKs para valoraciones y favoritos
-  try { $pdo->exec("ALTER TABLE valoraciones ADD CONSTRAINT fk_val_user FOREIGN KEY (user_id) REFERENCES usuarios(id) ON DELETE CASCADE"); } catch (Exception $e) {}
-  try { $pdo->exec("ALTER TABLE valoraciones ADD CONSTRAINT fk_val_game FOREIGN KEY (game_id) REFERENCES videojuegos(id) ON DELETE CASCADE"); } catch (Exception $e) {}
-  try { $pdo->exec("ALTER TABLE favoritos ADD CONSTRAINT fk_fav_user FOREIGN KEY (user_id) REFERENCES usuarios(id) ON DELETE CASCADE"); } catch (Exception $e) {}
-  try { $pdo->exec("ALTER TABLE favoritos ADD CONSTRAINT fk_fav_game FOREIGN KEY (game_id) REFERENCES videojuegos(id) ON DELETE CASCADE"); } catch (Exception $e) {}
-} catch (Exception $e) {
-  // Silenciar creación fallida para no romper la vista pública
-}
+ensure_auxiliary_tables();
 
 // Procesar acciones de usuario (POST) para rating y favoritos
 if (isLoggedIn() && $_SERVER['REQUEST_METHOD'] === 'POST') {

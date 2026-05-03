@@ -1,16 +1,8 @@
 <?php
 require_once 'config.php';
+require_once 'includes/db.php';
 
-// Asegurar tabla de valoraciones para poder calcular notas (no falla si ya existe)
-try {
-        $pdo->exec("CREATE TABLE IF NOT EXISTS valoraciones (
-            user_id INT NOT NULL,
-            game_id INT NOT NULL,
-            rating TINYINT UNSIGNED NOT NULL,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            PRIMARY KEY (user_id, game_id), INDEX (game_id)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
-} catch (Exception $e) {}
+ensure_auxiliary_tables();
 
 // Obtener los últimos juegos añadidos (excluyendo futuros lanzamientos)
 $stmt = $pdo->prepare("SELECT v.*, COALESCE(r.avg_rating, 0) AS avg_rating, COALESCE(r.votes, 0) AS votes

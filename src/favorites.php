@@ -1,20 +1,11 @@
 <?php
 require_once 'config.php';
+require_once 'includes/db.php';
+
 if (!isLoggedIn()) { redirect('login.php'); }
 $uid = (int)$_SESSION['user_id'];
 
-// Ensure tables exist (safe if already)
-try {
-  $pdo->exec("CREATE TABLE IF NOT EXISTS favoritos (
-    user_id INT NOT NULL,
-    game_id INT NOT NULL,
-    posicion INT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (user_id, game_id),
-    UNIQUE KEY uniq_user_pos (user_id, posicion),
-    INDEX (user_id), INDEX (game_id)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
-} catch (Exception $e) {}
+ensure_auxiliary_tables();
 
 // Save new order (nuevo: por posiciones), mantiene compatibilidad con 'order[]'
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

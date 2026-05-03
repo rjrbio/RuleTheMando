@@ -1,16 +1,8 @@
 <?php
 require_once 'config.php';
+require_once 'includes/db.php';
 
-// Asegurar tabla de valoraciones para poder hacer agregados (no falla si ya existe)
-try {
-  $pdo->exec("CREATE TABLE IF NOT EXISTS valoraciones (
-    user_id INT NOT NULL,
-    game_id INT NOT NULL,
-    rating TINYINT UNSIGNED NOT NULL,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (user_id, game_id), INDEX (game_id)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
-} catch (Exception $e) {}
+ensure_auxiliary_tables();
 
 // Filtros básicos
 $buscar = isset($_GET['q']) ? trim($_GET['q']) : '';
