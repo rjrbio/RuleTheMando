@@ -133,6 +133,28 @@
 .btn { transition: transform 0.12s ease, box-shadow 0.18s ease, background-color 0.18s ease; }
 .btn:hover:not(:disabled) { transform: translateY(-1px); }
 
+/* Hover en cards del listado de juegos (games.php usa .game-section). En
+   index.php las cards usan .game-card, que ya tiene su propio hover en
+   styles.css; aqui anadimos solo el caso que faltaba. */
+.game-section { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.game-section:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+}
+
+/* Cards generales con shadow-sm (avisos, empty states) ganan un sutil
+   levantamiento al pasar por encima si tienen un enlace dentro, para
+   sugerir interactividad. */
+.card.shadow-sm:has(a):hover { box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08) !important; }
+
+/* Pequeno bounce al marcar favorito o votar (anadir clase .pulse-once
+   desde JS). Disparable en futuras microinteracciones. */
+@keyframes appPulseOnce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.18); }
+}
+.pulse-once { animation: appPulseOnce 0.35s ease-in-out; }
+
 /* Respetar prefers-reduced-motion: anular animaciones largas y
    transformaciones notables. Bootstrap 5 ya respeta esto en algunos
    sitios; reforzamos globalmente. */

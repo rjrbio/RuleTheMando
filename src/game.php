@@ -357,7 +357,19 @@ include 'includes/flash.php';
           <?php endif; ?>
 
           <?php if (empty($reviews)): ?>
-            <div class="text-muted">Aún no hay críticas.</div>
+            <div class="text-center py-4 border rounded bg-light">
+              <i class="far fa-comment-dots text-muted mb-2 d-block" style="font-size: 2.25rem;" aria-hidden="true"></i>
+              <p class="text-muted mb-2">Aún no hay críticas para este juego.</p>
+              <?php if (!isLoggedIn()): ?>
+                <a class="btn btn-sm btn-outline-primary" href="login.php"><i class="fas fa-sign-in-alt me-1" aria-hidden="true"></i>Inicia sesión para escribir la primera</a>
+              <?php elseif (!empty($juego['es_futuro_lanzamiento'])): ?>
+                <small class="text-muted d-block">Disponible para criticar tras el lanzamiento.</small>
+              <?php elseif ($myRating === null): ?>
+                <small class="text-muted d-block">Vota el juego para poder escribir tu crítica.</small>
+              <?php else: ?>
+                <small class="text-muted d-block">Sé el primero: usa el formulario de arriba para compartir tu opinión.</small>
+              <?php endif; ?>
+            </div>
           <?php else: ?>
             <ul class="list-unstyled mb-0">
               <?php foreach ($reviews as $rv): ?>

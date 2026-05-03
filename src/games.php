@@ -174,7 +174,20 @@ include 'includes/flash.php';
       <!-- Lista de juegos -->
       <div class="col-lg-9">
         <?php if (empty($juegos)): ?>
-          <div class="alert alert-info"><i class="fas fa-info-circle me-2"></i>No se encontraron juegos con esos filtros.</div>
+          <div class="card border-0 shadow-sm text-center py-5">
+            <div class="card-body">
+              <div class="mb-3">
+                <i class="fas fa-search text-muted" style="font-size: 3rem;" aria-hidden="true"></i>
+              </div>
+              <h2 class="h5 fw-bold mb-2">Sin resultados</h2>
+              <p class="text-muted mb-4 mx-auto" style="max-width: 460px;">
+                No hay juegos que cumplan los filtros actuales. Prueba a quitar alguno o cambia el término de búsqueda.
+              </p>
+              <a href="games.php" class="btn btn-primary">
+                <i class="fas fa-times-circle me-2" aria-hidden="true"></i>Limpiar filtros
+              </a>
+            </div>
+          </div>
         <?php else: ?>
           <!-- Índice A-Z -->
           <div class="card mb-3">
