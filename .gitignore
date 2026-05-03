@@ -1,11 +1,35 @@
-src/admin*
-src/check-supabase-limits.php
-src/helpers/
-src/docker*
-src/test*
+# OS / IDE
+.DS_Store
+**/.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Logs y dumps (incluye supabase_log.txt, email_log.txt y similares)
 src/*.log
-src/*.env
-src/*.sql
-src/supabase*
+src/*_log.txt
+src/logs/
+
+# Secretos y configuración local
 src/config*
+src/supabase*
+src/.env
+src/*.env
+
+# Panel admin (no se versiona en repo público)
+src/admin*
+
+# Endpoints de debug/test/dev — nunca al repo
+src/debug*
+src/dev*
+src/test*
+src/clean*
+src/check*
+src/docker*
+
+# Schema y migraciones (mantener fuera del repo público)
+src/*.sql
 src/migrations/
+
+# Helpers / scripts auxiliares
+src/helpers/

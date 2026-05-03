@@ -1,0 +1,18 @@
+# Defensa en profundidad: bloquear ejecución de scripts en /uploads/.
+# Aunque la app valida MIME y extensión al subir, este archivo evita
+# que cualquier fichero .php que se cuele sea ejecutable por el servidor.
+
+<FilesMatch "\.(php|phtml|php3|php4|php5|php7|phar|cgi|pl|py|sh|asp|aspx|jsp|jspx)$">
+  Require all denied
+</FilesMatch>
+
+# Desactivar motor PHP completamente en este directorio (Apache + mod_php)
+<IfModule mod_php.c>
+  php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+  php_flag engine off
+</IfModule>
+
+# Evitar listado de directorio
+Options -Indexes

@@ -96,13 +96,6 @@ function sendVerificationEmailLocal($email, $username, $token)
     $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
     $headers .= "From: " . SITE_NAME . " <noreply@rulethemando.com>" . "\r\n";
 
-    // Log para testing
-    $log_entry = date('Y-m-d H:i:s') . " - RESEND Email to: $email\n";
-    $log_entry .= "Subject: $subject\n";
-    $log_entry .= "Verification Link: $verification_link\n";
-    $log_entry .= "---\n\n";
-    file_put_contents('email_log.txt', $log_entry, FILE_APPEND);
-
     return mail($email, $subject, $message, $headers);
 }
 ?>

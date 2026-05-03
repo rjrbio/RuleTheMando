@@ -55,6 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
                 if ($requiresVerification) {
                     $error = 'Debes verificar tu email antes de iniciar sesión. <a href="resend-verification.php?email=' . urlencode($user['email']) . '">Reenviar email de verificación</a>';
                 } else {
+                    session_regenerate_id(true);
                     $_SESSION['user_id'] = $user['id'];
                     $_SESSION['username'] = $user['username'];
                     $_SESSION['email'] = $user['email'];
@@ -201,14 +202,6 @@ function sendVerificationEmailLocal($email, $username, $token)
     $headers = "MIME-Version: 1.0" . "\r\n";
     $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
     $headers .= "From: " . SITE_NAME . " <noreply@rulethemando.com>" . "\r\n";
-
-    // Por ahora, guardaremos el email en un archivo de log para testing
-    // En producción, reemplaza esto con PHPMailer o tu servicio de email
-    $log_entry = date('Y-m-d H:i:s') . " - Email to: $email\n";
-    $log_entry .= "Subject: $subject\n";
-    $log_entry .= "Verification Link: $verification_link\n";
-    $log_entry .= "---\n\n";
-    file_put_contents('email_log.txt', $log_entry, FILE_APPEND);
 
     return mail($email, $subject, $message, $headers);
 }

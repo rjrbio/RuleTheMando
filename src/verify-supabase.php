@@ -15,20 +15,8 @@ if (isset($_GET['token']) || isset($_GET['token_hash'])) {
     $token = isset($_GET['token']) ? sanitize($_GET['token']) : sanitize($_GET['token_hash']);
     $type = isset($_GET['type']) ? sanitize($_GET['type']) : 'signup';
 
-    // Log para debugging
-    SupabaseClient::logResponse([
-        'token_length' => strlen($token),
-        'token_preview' => substr($token, 0, 20) . '...',
-        'type' => $type,
-        'full_url' => $_SERVER['REQUEST_URI'],
-        'all_params' => $_GET
-    ], 'VERIFY_URL_RECEIVED');
-
     // Verificar con Supabase
     $response = verifySupabaseEmail($token, $type);
-
-    // Log detallado de la respuesta
-    SupabaseClient::logResponse($response, 'VERIFY_RESPONSE_DETAIL');
 
     if (!empty($response['success'])) {
         // Obtener email del usuario desde la respuesta
@@ -64,20 +52,13 @@ if (isset($_GET['token']) || isset($_GET['token_hash'])) {
                 $message = 'Error al actualizar el estado de verificación en la base de datos local.';
             }
         } else {
-            $message = 'Verificación exitosa en Supabase, pero no se pudo obtener el email del usuario. Respuesta: ' . json_encode($response['data']);
+            $message = 'Verificación exitosa en Supabase, pero no se pudo obtener el email del usuario.';
         }
     } else {
-        // Log del error para debugging
-        SupabaseClient::logResponse($response, 'VERIFY_ERROR');
-
-        $errorMsg = 'Token de verificación inválido o expirado.';
-        if (isset($response['data']['error'])) {
-            $errorMsg .= ' Error: ' . $response['data']['error'];
-        }
-        if (isset($response['data']['error_description'])) {
-            $errorMsg .= ' (' . $response['data']['error_description'] . ')';
-        }
-        $message = $errorMsg;
+        // No filtramos detalles internos de Supabase al usuario.
+        // El detalle queda en el log de servidor para debugging.
+        error_log('Supabase verify failed: ' . json_encode($response));
+        $message = 'Token de verificación inválido o expirado.';
 
         // Intentar ofrecer reenvío si se proporcionó email
         if (!empty($_GET['email'])) {
@@ -152,21 +133,6 @@ if (isset($_GET['token']) || isset($_GET['token_hash'])) {
                     </div>
                 </div>
                 
-                <!-- Debug info para desarrollo -->
-                <?php if (strpos(SITE_URL, 'localhost') !== false): ?>
-                    <div class="card mt-3">
-                        <div class="card-header bg-warning text-dark">
-                            <small><i class="fas fa-bug"></i> Debug Info (solo en desarrollo)</small>
-                        </div>
-                        <div class="card-body">
-                            <small>
-                                <strong>Token:</strong> <?php echo isset($_GET['token']) ? htmlspecialchars($_GET['token']) : 'No proporcionado'; ?><br>
-                                <strong>Type:</strong> <?php echo isset($_GET['type']) ? htmlspecialchars($_GET['type']) : 'No proporcionado'; ?><br>
-                                <strong>Supabase Response:</strong> <?php echo isset($response) ? json_encode($response, JSON_PRETTY_PRINT) : 'N/A'; ?>
-                            </small>
-                        </div>
-                    </div>
-                <?php endif; ?>
             </div>
         </div>
     </div>
