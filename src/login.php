@@ -214,86 +214,43 @@ function sendVerificationEmailLocal($email, $username, $token)
 }
 
 $pageTitle = 'Login';
+// Layout especifico de auth: solo el posicionamiento. La estetica
+// (colores, gradientes, sombras) vive en styles.css (.auth-* / .btn-auth).
 ob_start();
 ?>
 <style>
     .auth-container {
         min-height: 100vh;
-        background: linear-gradient(135deg, #6366f1, #8b5cf6);
         display: flex;
         align-items: center;
         justify-content: center;
         padding: 20px 0;
     }
-
     .auth-card {
-        background: white;
-        border-radius: 15px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
         overflow: hidden;
         width: 100%;
         max-width: 800px;
     }
-
     .auth-header {
-        background: linear-gradient(135deg, #1f2937, #374151);
-        color: white;
         padding: 2rem;
         text-align: center;
+        color: #fff;
     }
-
-    .auth-body {
-        padding: 2rem;
-    }
-
-    .nav-tabs .nav-link {
-        border: none;
-        color: #6b7280;
-        font-weight: 500;
-    }
-
-    .nav-tabs .nav-link.active {
-        background: linear-gradient(135deg, #6366f1, #8b5cf6);
-        color: white;
-        border-radius: 10px;
-    }
-
-    .form-floating label {
-        color: #6b7280;
-    }
-
+    .auth-body { padding: 2rem; }
     .btn-auth {
-        background: linear-gradient(135deg, #6366f1, #8b5cf6);
-        border: none;
         padding: 12px 0;
+        border-radius: var(--radius-sm);
         font-weight: 600;
-        border-radius: 10px;
-        transition: all 0.3s ease;
+        width: 100%;
     }
-
-    .btn-auth:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4);
-    }
-
-    .alert {
-        border-radius: 10px;
-        border: none;
-    }
-
     .back-home {
         position: absolute;
         top: 20px;
         left: 20px;
-        color: white;
         text-decoration: none;
-        font-size: 1.2rem;
-        transition: all 0.3s ease;
-    }
-
-    .back-home:hover {
-        color: #f59e0b;
-        transform: translateX(-5px);
+        font-size: 1.05rem;
+        font-weight: 500;
+        letter-spacing: 0.04em;
     }
 </style>
 <?php

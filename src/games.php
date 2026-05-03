@@ -86,14 +86,11 @@ $plataformas = $pdo->query("SELECT DISTINCT plataforma FROM videojuegos WHERE pl
 $generos = $pdo->query("SELECT DISTINCT genero FROM videojuegos WHERE genero IS NOT NULL AND genero <> '' ORDER BY genero ASC")->fetchAll(PDO::FETCH_COLUMN);
 
 $pageTitle = 'Todos los juegos';
+// Pequeno reset local para esta vista (estilos completos en styles.css)
 $extraHead = <<<HTML
 <style>
-  .game-section { background: #fff; border-radius: 16px; box-shadow: 0 6px 18px rgba(0,0,0,0.08); overflow: hidden; margin-bottom: 24px; }
   .game-cover { width: 100%; height: 100%; object-fit: cover; }
-  .game-cover-wrap { min-height: 260px; background: #0f172a; display: flex; align-items: center; justify-content: center; }
-  .badge-upcoming { background: linear-gradient(135deg, #f59e0b, #d97706); }
-  .badge-available { background: linear-gradient(135deg, #10b981, #059669); }
-  .filters-card { border-radius: 16px; }
+  .game-cover-wrap { min-height: 260px; display: flex; align-items: center; justify-content: center; }
 </style>
 HTML;
 include 'includes/head.php';

@@ -123,12 +123,10 @@ $stmt->execute([$uid]);
 $favs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 $pageTitle = 'Mis Favoritos';
+// .podium-1/2/3 viven en styles.css; aqui solo cosmetica local.
 $extraHead = <<<HTML
 <style>
-  .fav-item{cursor:grab}
-  .podium-1{border:2px solid #f59e0b; box-shadow:0 0 0 3px rgba(245,158,11,.2)}
-  .podium-2{border:2px solid #9ca3af; box-shadow:0 0 0 3px rgba(156,163,175,.2)}
-  .podium-3{border:2px solid #b45309; box-shadow:0 0 0 3px rgba(180,83,9,.2)}
+  .fav-item { cursor: grab; }
 </style>
 HTML;
 include 'includes/head.php';

@@ -107,24 +107,19 @@ $pageTitle = 'Reenviar Verificación';
 ob_start();
 ?>
 <style>
-    .resend-container {
+    /* Solo layout: estetica (verify-container/verify-card) en styles.css. */
+    .verify-container {
         min-height: 100vh;
-        background: linear-gradient(135deg, #6366f1, #8b5cf6);
         display: flex;
         align-items: center;
         justify-content: center;
         padding: 20px;
     }
-
-    .resend-card {
-        background: white;
-        border-radius: 20px;
-        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+    .verify-card {
         padding: 3rem 2rem;
         max-width: 500px;
         width: 100%;
     }
-
     .resend-icon {
         width: 80px;
         height: 80px;
@@ -134,31 +129,19 @@ ob_start();
         align-items: center;
         justify-content: center;
         margin: 0 auto 1.5rem;
-        color: white;
+        color: #fff;
         font-size: 2rem;
+        box-shadow: 0 0 32px rgba(245, 158, 11, 0.35);
     }
-
-    .btn-resend {
-        background: linear-gradient(135deg, #6366f1, #8b5cf6);
-        border: none;
-        padding: 12px 0;
-        font-weight: 600;
-        border-radius: 10px;
-        transition: all 0.3s ease;
-    }
-
-    .btn-resend:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4);
-    }
+    .btn-resend { padding: 12px 0; }
 </style>
 <?php
 $extraHead = ob_get_clean();
 include 'includes/head.php';
 ?>
 <body>
-    <div class="resend-container">
-        <div class="resend-card">
+    <div class="verify-container">
+        <div class="verify-card">
             <div class="text-center mb-4">
                 <div class="resend-icon">
                     <i class="fas fa-envelope"></i>

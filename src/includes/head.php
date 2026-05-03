@@ -19,7 +19,10 @@ $extraHead = $extraHead ?? '';
   <title><?= $pageTitle !== '' ? e($pageTitle) . ' — ' : '' ?><?= e(SITE_NAME) ?></title>
   <link rel="icon" type="image/png" href="media/rulethemando.png">
   <link rel="apple-touch-icon" href="media/rulethemando.png">
-  <meta name="theme-color" content="#6366f1">
+  <meta name="theme-color" content="#070b15">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <link href="includes/theme.css" rel="stylesheet">

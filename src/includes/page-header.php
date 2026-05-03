@@ -12,7 +12,7 @@ $headerTitle    = $headerTitle    ?? '';
 $headerSubtitle = $headerSubtitle ?? '';
 $headerIcon     = $headerIcon     ?? '';
 ?>
-<header class="page-header text-white py-4 mb-4" style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">
+<header class="page-header text-white py-4 mb-4">
   <div class="container">
     <h1 class="h3 fw-bold mb-1">
 <?php if ($headerIcon !== ''): ?>

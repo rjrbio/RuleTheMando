@@ -24,7 +24,6 @@ $stmt->execute();
 $futuroJuego = $stmt->fetch(PDO::FETCH_ASSOC);
 
 $pageTitle = 'Tu guía definitiva de videojuegos';
-$extraCss = ['advanced-animations.css'];
 include 'includes/head.php';
 ?>
 <body>
@@ -101,7 +100,7 @@ include 'includes/flash.php';
                 ?>
                 <section class="mb-5">
                     <h2 class="mb-4 section-title"><i class="fas fa-rocket text-info"></i> Próximo Lanzamiento</h2>
-                    <div class="card future-release-card pulse-effect">
+                    <div class="card future-release-card">
                         <div class="row g-0">
                             <div class="col-md-4">
                                 <a href="<?php echo $hrefF; ?>">
@@ -145,96 +144,36 @@ include 'includes/flash.php';
     <?php include 'includes/site-footer.php'; ?>
 
     <?php
-    $extraScripts = ['animations.js'];
     ob_start();
     ?>
     <script>
-        // Contador regresivo
-        function updateCountdown() {
-            const countdownElement = document.getElementById('countdown');
-            if (!countdownElement) return;
-            
-            const targetDate = new Date(countdownElement.dataset.target);
-            const now = new Date();
-            const difference = targetDate - now;
-            
-            if (difference > 0) {
-                const days = Math.floor(difference / (1000 * 60 * 60 * 24));
-                const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-                const seconds = Math.floor((difference % (1000 * 60)) / 1000);
-                
-                countdownElement.innerHTML = `
-                    <div class="countdown-item">
-                        <span class="countdown-number">${days}</span>
-                        <span class="countdown-label">días</span>
-                    </div>
-                    <div class="countdown-item">
-                        <span class="countdown-number">${hours}</span>
-                        <span class="countdown-label">horas</span>
-                    </div>
-                    <div class="countdown-item">
-                        <span class="countdown-number">${minutes}</span>
-                        <span class="countdown-label">min</span>
-                    </div>
-                    <div class="countdown-item">
-                        <span class="countdown-number">${seconds}</span>
-                        <span class="countdown-label">seg</span>
-                    </div>
-                `;
-            } else {
-                countdownElement.innerHTML = '<span class="text-success fw-bold">¡Ya disponible!</span>';
+        // Contador regresivo del proximo lanzamiento
+        (function () {
+            const el = document.getElementById('countdown');
+            if (!el) return;
+            const target = new Date(el.dataset.target);
+
+            function render() {
+                const diff = target - new Date();
+                if (diff <= 0) {
+                    el.innerHTML = '<span class="text-success fw-bold">¡Ya disponible!</span>';
+                    clearInterval(timer);
+                    return;
+                }
+                const d = Math.floor(diff / 86400000);
+                const h = Math.floor((diff % 86400000) / 3600000);
+                const m = Math.floor((diff % 3600000) / 60000);
+                const s = Math.floor((diff % 60000) / 1000);
+                el.innerHTML =
+                    '<div class="countdown-item"><span class="countdown-number">' + d + '</span><span class="countdown-label">días</span></div>' +
+                    '<div class="countdown-item"><span class="countdown-number">' + h + '</span><span class="countdown-label">horas</span></div>' +
+                    '<div class="countdown-item"><span class="countdown-number">' + m + '</span><span class="countdown-label">min</span></div>' +
+                    '<div class="countdown-item"><span class="countdown-number">' + s + '</span><span class="countdown-label">seg</span></div>';
             }
-        }
-        
-        // Actualizar contador cada segundo
-        if (document.getElementById('countdown')) {
-            updateCountdown();
-            setInterval(updateCountdown, 1000);
-        }
-        
-        // Efectos de hover en las tarjetas
-        document.querySelectorAll('.game-card').forEach(card => {
-            card.addEventListener('mouseenter', function() {
-                this.style.transform = 'translateY(-10px)';
-                this.style.boxShadow = '0 10px 25px rgba(0,0,0,0.2)';
-            });
-            
-            card.addEventListener('mouseleave', function() {
-                this.style.transform = 'translateY(0)';
-                this.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
-            });
-        });
 
-                        // Parallax suave: texto (overlay) hacia arriba y la imagen hacia abajo
-                (function(){
-                    const hero = document.querySelector('.hero-banner');
-                            const overlay = hero ? hero.querySelector('.hero-overlay') : null;
-                            const img = hero ? hero.querySelector('.hero-image') : null;
-                    const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-                            if (!hero || !overlay || !img || reduceMotion) return;
-
-                    let ticking = false;
-                    function updateParallax(){
-                        const start = hero.offsetTop;
-                        const h = hero.offsetHeight;
-                        const y = Math.min(Math.max(window.scrollY - start, 0), h);
-                                // Texto sube (negativo), imagen baja (positivo)
-                                overlay.style.transform = `translateY(${-y * 0.25}px)`;
-                                img.style.transform = `translateY(${y * 0.15}px) scale(1.05)`;
-                        ticking = false;
-                    }
-                    function onScroll(){
-                        if (!ticking) {
-                            ticking = true;
-                            requestAnimationFrame(updateParallax);
-                        }
-                    }
-                    window.addEventListener('scroll', onScroll, { passive: true });
-                    window.addEventListener('resize', onScroll);
-                    // Inicial
-                    updateParallax();
-                })();
+            render();
+            const timer = setInterval(render, 1000);
+        })();
     </script>
     <?php
     $extraScriptsHtml = ob_get_clean();

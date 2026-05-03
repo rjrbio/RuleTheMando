@@ -29,8 +29,9 @@ $pageTitle = 'Panel de Administración';
 ob_start();
 ?>
 <style>
+    /* Solo layout del panel admin: la estetica (paleta, gradientes,
+       glow) vive en styles.css. */
     .admin-sidebar {
-        background: linear-gradient(135deg, #1f2937, #374151);
         min-height: 100vh;
         position: fixed;
         width: 250px;
@@ -39,96 +40,35 @@ ob_start();
         z-index: 1000;
         padding-top: 20px;
     }
-
-    .admin-main {
-        margin-left: 250px;
-        min-height: 100vh;
-        background-color: #f8fafc;
-    }
-
-    .admin-header {
-        background: white;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        padding: 1rem 2rem;
-        margin-bottom: 2rem;
-    }
-
+    .admin-main { margin-left: 250px; min-height: 100vh; }
+    .admin-header { padding: 1rem 2rem; margin-bottom: 2rem; }
     .sidebar-brand {
-        color: white;
         text-decoration: none;
         padding: 1rem 1.5rem;
         display: block;
         font-weight: 700;
-        font-size: 1.2rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        font-size: 1.05rem;
+        border-bottom: 1px solid;
         margin-bottom: 1rem;
     }
-
-    .sidebar-nav {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-    }
-
-    .sidebar-nav-item {
-        margin-bottom: 0.5rem;
-    }
-
+    .sidebar-nav { list-style: none; padding: 0; margin: 0; }
+    .sidebar-nav-item { margin-bottom: 0.4rem; }
     .sidebar-nav-link {
-        color: rgba(255, 255, 255, 0.8);
         text-decoration: none;
-        padding: 0.75rem 1.5rem;
+        padding: 0.7rem 1.5rem;
         display: block;
-        transition: all 0.3s ease;
+        transition: background-color var(--transition), color var(--transition), border-left-color var(--transition);
+        border-left: 2px solid transparent;
     }
-
-    .sidebar-nav-link:hover,
-    .sidebar-nav-link.active {
-        color: white;
-        background-color: rgba(255, 255, 255, 0.1);
-        transform: translateX(5px);
-    }
-
-    .stat-card {
-        background: linear-gradient(135deg, #6366f1, #8b5cf6);
-        color: white;
-        border-radius: 15px;
-        padding: 1.5rem;
-        margin-bottom: 1rem;
-    }
-
-    .stat-icon {
-        font-size: 2.5rem;
-        opacity: 0.8;
-    }
-
-    .game-table {
-        background: white;
-        border-radius: 15px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        overflow: hidden;
-    }
-
-    .game-image {
-        width: 50px;
-        height: 50px;
-        object-fit: cover;
-        border-radius: 5px;
-    }
+    .stat-card { border-radius: var(--radius-lg); padding: 1.5rem; margin-bottom: 1rem; color: #fff; }
+    .stat-icon { font-size: 2.5rem; opacity: 0.85; }
+    .game-table { border-radius: var(--radius-lg); overflow: hidden; }
+    .game-image { width: 50px; height: 50px; object-fit: cover; border-radius: 5px; }
 
     @media (max-width: 768px) {
-        .admin-sidebar {
-            transform: translateX(-100%);
-            transition: transform 0.3s ease;
-        }
-
-        .admin-sidebar.show {
-            transform: translateX(0);
-        }
-
-        .admin-main {
-            margin-left: 0;
-        }
+        .admin-sidebar { transform: translateX(-100%); transition: transform var(--transition); }
+        .admin-sidebar.show { transform: translateX(0); }
+        .admin-main { margin-left: 0; }
     }
 </style>
 <?php
