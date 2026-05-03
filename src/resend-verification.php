@@ -7,7 +7,7 @@ $success = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' || isset($_GET['email'])) {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') { csrf_check(); }
-    $email = isset($_POST['email']) ? sanitize($_POST['email']) : sanitize($_GET['email']);
+    $email = trim((string)($_POST['email'] ?? $_GET['email'] ?? ''));
 
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $message = 'Por favor, ingresa un email válido.';

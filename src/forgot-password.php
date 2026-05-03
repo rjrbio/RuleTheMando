@@ -8,7 +8,7 @@ $success = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
-    $email = sanitize($_POST['email'] ?? '');
+    $email = trim((string)($_POST['email'] ?? ''));
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $message = 'Por favor, introduce un email válido.';
     } elseif (rate_limit_blocked('forgot', $email, 3, 60)) {

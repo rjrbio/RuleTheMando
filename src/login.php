@@ -21,8 +21,8 @@ if (isLoggedIn()) {
 // Procesar login
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     csrf_check();
-    $username = sanitize($_POST['username']);
-    $password = $_POST['password'];
+    $username = trim((string)($_POST['username'] ?? ''));
+    $password = (string)($_POST['password'] ?? '');
 
     if (empty($username) || empty($password)) {
         $error = 'Por favor, completa todos los campos.';
@@ -77,10 +77,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
 // Procesar registro
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
     csrf_check();
-    $username = sanitize($_POST['reg_username']);
-    $email = sanitize($_POST['reg_email']);
-    $password = $_POST['reg_password'];
-    $confirm_password = $_POST['reg_confirm_password'];
+    $username = trim((string)($_POST['reg_username'] ?? ''));
+    $email = trim((string)($_POST['reg_email'] ?? ''));
+    $password = (string)($_POST['reg_password'] ?? '');
+    $confirm_password = (string)($_POST['reg_confirm_password'] ?? '');
 
     // Validaciones
     if (empty($username) || empty($email) || empty($password) || empty($confirm_password)) {

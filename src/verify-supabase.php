@@ -11,9 +11,10 @@ $success = false;
 // Formato 3: Otros parámetros que Supabase pueda usar
 
 if (isset($_GET['token']) || isset($_GET['token_hash'])) {
-    // Determinar qué token usar
-    $token = isset($_GET['token']) ? sanitize($_GET['token']) : sanitize($_GET['token_hash']);
-    $type = isset($_GET['type']) ? sanitize($_GET['type']) : 'signup';
+    // Determinar qué token usar (no aplicar htmlspecialchars: se pasa a la API
+    // de Supabase via JSON; el escape es responsabilidad de json_encode).
+    $token = trim((string)($_GET['token'] ?? $_GET['token_hash'] ?? ''));
+    $type = trim((string)($_GET['type'] ?? 'signup'));
 
     // Verificar con Supabase
     $response = verifySupabaseEmail($token, $type);
@@ -62,13 +63,13 @@ if (isset($_GET['token']) || isset($_GET['token_hash'])) {
 
         // Intentar ofrecer reenvío si se proporcionó email
         if (!empty($_GET['email'])) {
-            $emailParam = sanitize($_GET['email']);
-            $message .= ' <a href="resend-verification.php?email=' . urlencode($emailParam) . '">Solicitar nuevo enlace</a>';
+            $message .= ' <a href="resend-verification.php?email=' . urlencode((string)$_GET['email']) . '">Solicitar nuevo enlace</a>';
         }
     }
 } elseif (isset($_GET['error'])) {
-    $error = sanitize($_GET['error']);
-    $message = 'Error en la verificación: ' . $error;
+    // El error viene de un parametro publico: escape obligatorio al concatenar
+    // con HTML porque $message se renderiza sin escape posterior.
+    $message = 'Error en la verificación: ' . e($_GET['error']);
 } else {
     $message = 'Token de verificación no proporcionado.';
 }

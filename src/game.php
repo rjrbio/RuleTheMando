@@ -285,7 +285,7 @@ try {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><?php echo sanitize($juego['titulo']); ?> - <?php echo SITE_NAME; ?></title>
+  <title><?php echo e($juego['titulo']); ?> - <?php echo SITE_NAME; ?></title>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <link href="styles.css" rel="stylesheet">
@@ -340,10 +340,10 @@ try {
     <div class="container">
       <div class="row g-4 align-items-center">
         <div class="col-md-5">
-          <img class="game-hero-img" src="<?php echo $juego['imagen'] ? UPLOAD_PATH . $juego['imagen'] : 'https://via.placeholder.com/800x450?text=Sin+Imagen'; ?>" alt="<?php echo sanitize($juego['titulo']); ?>">
+          <img class="game-hero-img" src="<?php echo $juego['imagen'] ? UPLOAD_PATH . $juego['imagen'] : 'https://via.placeholder.com/800x450?text=Sin+Imagen'; ?>" alt="<?php echo e($juego['titulo']); ?>">
         </div>
         <div class="col-md-7">
-          <h1 class="mb-2"><?php echo sanitize($juego['titulo']); ?></h1>
+          <h1 class="mb-2"><?php echo e($juego['titulo']); ?></h1>
           <p class="lead mb-3"><?php echo htmlspecialchars($juego['descripcion']); ?></p>
           <div>
             <?php if ($juego['es_futuro_lanzamiento']): ?>
@@ -509,10 +509,10 @@ try {
                   <?php $slugR = isset($r['slug']) ? $r['slug'] : ''; ?>
                   <a href="game.php?<?php echo $slugR ? ('slug=' . urlencode($slugR)) : ('id=' . (int)$r['id']); ?>" class="text-decoration-none text-dark">
                     <div class="card card-related">
-                      <img src="<?php echo $r['imagen'] ? UPLOAD_PATH . $r['imagen'] : 'https://via.placeholder.com/400x225?text=Sin+Imagen'; ?>" alt="<?php echo sanitize($r['titulo']); ?>">
+                      <img src="<?php echo $r['imagen'] ? UPLOAD_PATH . $r['imagen'] : 'https://via.placeholder.com/400x225?text=Sin+Imagen'; ?>" alt="<?php echo e($r['titulo']); ?>">
                       <div class="card-body p-2">
-                        <div class="fw-semibold small mb-1"><?php echo sanitize($r['titulo']); ?></div>
-                        <div class="text-muted small"><?php echo sanitize($r['genero'] ?: $r['plataforma']); ?></div>
+                        <div class="fw-semibold small mb-1"><?php echo e($r['titulo']); ?></div>
+                        <div class="text-muted small"><?php echo e($r['genero'] ?: $r['plataforma']); ?></div>
                       </div>
                     </div>
                   </a>
@@ -527,9 +527,9 @@ try {
           <h5 class="card-title">Detalles</h5>
           <ul class="list-unstyled meta">
             <li><strong>Fecha:</strong> <?php echo $juego['fecha_lanzamiento'] ? date('d/m/Y', strtotime($juego['fecha_lanzamiento'])) : '-'; ?></li>
-            <li><strong>Plataforma:</strong> <?php echo sanitize($juego['plataforma'] ?: '-'); ?></li>
-            <li><strong>Género:</strong> <?php echo sanitize($juego['genero'] ?: '-'); ?></li>
-            <li><strong>Desarrollador:</strong> <?php echo sanitize($juego['desarrollador'] ?: '-'); ?></li>
+            <li><strong>Plataforma:</strong> <?php echo e($juego['plataforma'] ?: '-'); ?></li>
+            <li><strong>Género:</strong> <?php echo e($juego['genero'] ?: '-'); ?></li>
+            <li><strong>Desarrollador:</strong> <?php echo e($juego['desarrollador'] ?: '-'); ?></li>
             
             <li><strong>Actualizado:</strong> <?php echo date('d/m/Y H:i', strtotime($juego['updated_at'])); ?></li>
           </ul>

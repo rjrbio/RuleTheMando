@@ -5,7 +5,7 @@ $message = '';
 $success = false;
 
 if (isset($_GET['token'])) {
-    $token = sanitize($_GET['token']);
+    $token = trim((string)$_GET['token']);
 
     // Buscar el token en la base de datos
     $stmt = $pdo->prepare("SELECT * FROM usuarios WHERE verification_token = ? AND verification_expires > NOW() AND email_verified = FALSE");

@@ -130,7 +130,7 @@ $generos = $pdo->query("SELECT DISTINCT genero FROM videojuegos WHERE genero IS 
             <li class="nav-item"><a class="nav-link" href="favorites.php"><i class="fas fa-trophy"></i> Mis Favoritos</a></li>
             <li class="nav-item dropdown">
               <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                <i class="fas fa-user"></i> <?php echo sanitize($_SESSION['username']); ?>
+                <i class="fas fa-user"></i> <?php echo e($_SESSION['username']); ?>
               </a>
               <ul class="dropdown-menu">
                 <?php if (isAdmin()): ?>
@@ -241,13 +241,13 @@ $generos = $pdo->query("SELECT DISTINCT genero FROM videojuegos WHERE genero IS 
               <div class="row g-0">
                 <div class="col-md-5">
                   <div class="game-cover-wrap">
-                    <img class="game-cover" src="<?php echo $juego['imagen'] ? UPLOAD_PATH . $juego['imagen'] : 'https://via.placeholder.com/640x360?text=Sin+Imagen'; ?>" alt="<?php echo sanitize($juego['titulo']); ?>">
+                    <img class="game-cover" src="<?php echo $juego['imagen'] ? UPLOAD_PATH . $juego['imagen'] : 'https://via.placeholder.com/640x360?text=Sin+Imagen'; ?>" alt="<?php echo e($juego['titulo']); ?>">
                   </div>
                 </div>
                 <div class="col-md-7">
                   <div class="p-4 h-100 d-flex flex-column">
                     <div class="d-flex align-items-center justify-content-between mb-2">
-                      <h3 class="mb-0"><?php echo sanitize($juego['titulo']); ?></h3>
+                      <h3 class="mb-0"><?php echo e($juego['titulo']); ?></h3>
                       <?php if ($juego['es_futuro_lanzamiento']): ?>
                         <span class="badge badge-upcoming">Próximamente</span>
                       <?php else: ?>
@@ -258,9 +258,9 @@ $generos = $pdo->query("SELECT DISTINCT genero FROM videojuegos WHERE genero IS 
                     <p class="flex-grow-1" style="white-space: pre-wrap;"><?php echo htmlspecialchars($juego['descripcion']); ?></p>
                     <div class="mt-3">
                       <div class="row g-2">
-                        <div class="col-6"><small><strong>Plataforma:</strong> <?php echo sanitize($juego['plataforma']); ?></small></div>
-                        <div class="col-6"><small><strong>Género:</strong> <?php echo sanitize($juego['genero']); ?></small></div>
-                        <div class="col-6"><small><strong>Desarrollador:</strong> <?php echo sanitize($juego['desarrollador']); ?></small></div>
+                        <div class="col-6"><small><strong>Plataforma:</strong> <?php echo e($juego['plataforma']); ?></small></div>
+                        <div class="col-6"><small><strong>Género:</strong> <?php echo e($juego['genero']); ?></small></div>
+                        <div class="col-6"><small><strong>Desarrollador:</strong> <?php echo e($juego['desarrollador']); ?></small></div>
                         
                       </div>
                     </div>
