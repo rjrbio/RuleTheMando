@@ -252,6 +252,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['user_action'])) {
             $ok = $stmt->execute([$hash, $userId]);
             $success = $ok;
             if ($ok) {
+                // Revocar todas las cookies "Recuerdame" del usuario; al
+                // resetearle la password no queremos que sesiones previas
+                // sigan activas en otros dispositivos.
+                remember_me_clear_all_for_user((int)$userId);
                 $message = 'Contraseña reseteada. Temporal: ' . htmlspecialchars($temp) . ' (cámbiala tras el primer login)';
             } else {
                 $message = 'No se pudo resetear la contraseña.';

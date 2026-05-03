@@ -33,6 +33,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $newHash = password_hash($new, PASSWORD_DEFAULT);
                 $upd = $pdo->prepare('UPDATE usuarios SET password = ? WHERE id = ?');
                 if ($upd->execute([$newHash, $user['id']])) {
+                    // Cerrar sesiones "Recuerdame" de otros dispositivos al
+                    // cambiar la contrasena. Tambien limpia la cookie del
+                    // navegador actual; si quiere que se le recuerde aqui,
+                    // tendra que volver a marcar la casilla en el proximo
+                    // login.
+                    remember_me_clear_all_for_user((int)$user['id']);
                     $success = true;
                     $message = 'Contraseña actualizada correctamente.';
                 } else {

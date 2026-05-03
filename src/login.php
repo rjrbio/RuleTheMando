@@ -66,6 +66,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
                 $_SESSION['username'] = $user['username'];
                 $_SESSION['email'] = $user['email'];
                 $_SESSION['role'] = $user['role'];
+                if (!empty($_POST['remember'])) {
+                    remember_me_set((int)$user['id']);
+                }
                 redirect('index.php');
             }
         } else {
