@@ -279,24 +279,11 @@ try {
   $reviews = $q->fetchAll(PDO::FETCH_ASSOC);
   $reviewsCount = is_array($reviews) ? count($reviews) : 0;
 } catch (Exception $e) { /* noop */ }
-?>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><?php echo e($juego['titulo']); ?> - <?php echo SITE_NAME; ?></title>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-  <link href="styles.css" rel="stylesheet">
-  <meta name="description" content="Detalles de <?php echo htmlspecialchars($juego['titulo']); ?>: fecha, plataforma, género, desarrollador y más.">
-  <?php
-    $hasSlug = isset($juego['slug']) && !empty($juego['slug']);
-    $canonical = SITE_URL . '/game.php?' . ($hasSlug ? ('slug=' . urlencode($juego['slug'])) : ('id=' . (int)$juego['id']));
-  ?>
-  <link rel="canonical" href="<?php echo $canonical; ?>">
-  <script type="application/ld+json">
-  <?php echo json_encode([
+
+$pageTitle = $juego['titulo'];
+$hasSlug = isset($juego['slug']) && !empty($juego['slug']);
+$canonical = SITE_URL . '/game.php?' . ($hasSlug ? ('slug=' . urlencode($juego['slug'])) : ('id=' . (int)$juego['id']));
+$ldJson = json_encode([
     '@context' => 'https://schema.org',
     '@type' => 'VideoGame',
     'name' => $juego['titulo'],
@@ -305,36 +292,21 @@ try {
     'gamePlatform' => $juego['plataforma'] ?: null,
     'image' => $juego['imagen'] ? (SITE_URL . '/' . UPLOAD_PATH . $juego['imagen']) : null,
     'datePublished' => $juego['fecha_lanzamiento'] ?: null
-  ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); ?>
-  </script>
-</head>
+], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+ob_start();
+?>
+<meta name="description" content="<?= e('Detalles de ' . $juego['titulo'] . ': fecha, plataforma, género, desarrollador y más.') ?>">
+<link rel="canonical" href="<?= e($canonical) ?>">
+<script type="application/ld+json"><?= $ldJson ?></script>
+<?php
+$extraHead = ob_get_clean();
+include 'includes/head.php';
+?>
 <body class="bg-light">
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <div class="container">
-      <a class="navbar-brand fw-bold" href="index.php"><i class="fas fa-gamepad me-2"></i><?php echo SITE_NAME; ?></a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav me-auto">
-          <li class="nav-item"><a class="nav-link" href="games.php"><i class="fas fa-list"></i> Juegos</a></li>
-        </ul>
-        <ul class="navbar-nav">
-          <?php if (isLoggedIn()): ?>
-            <li class="nav-item"><a class="nav-link" href="favorites.php"><i class="fas fa-trophy"></i> Mis Favoritos</a></li>
-          <?php endif; ?>
-          <?php if (isAdmin()): ?>
-            <li class="nav-item"><a class="nav-link" href="admin.php?edit=<?php echo (int)$juego['id']; ?>#manage-games"><i class="fas fa-edit"></i> Editar</a></li>
-          <?php endif; ?>
-          <?php if (isLoggedIn()): ?>
-            <li class="nav-item"><a class="nav-link" href="logout.php"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a></li>
-          <?php else: ?>
-            <li class="nav-item"><a class="nav-link" href="login.php"><i class="fas fa-sign-in-alt"></i> Iniciar Sesión</a></li>
-          <?php endif; ?>
-        </ul>
-      </div>
-    </div>
-  </nav>
+<?php
+$activePage = 'games';
+include 'includes/navbar.php';
+?>
 
   <header class="game-hero py-4">
     <div class="container">
@@ -551,7 +523,9 @@ try {
     </div>
   </footer>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+  <?php
+  ob_start();
+  ?>
   <script>
     function toggleEditReview(uid){
       var v = document.getElementById('review_view_' + uid);
@@ -562,5 +536,7 @@ try {
       v.style.display = isHidden ? 'none' : 'block';
     }
   </script>
-</body>
-</html>
+  <?php
+  $extraScriptsHtml = ob_get_clean();
+  include 'includes/footer.php';
+  ?>

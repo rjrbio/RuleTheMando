@@ -47,19 +47,11 @@ if (isset($_GET['buscar']) && !empty($_GET['buscar'])) {
     $stmt->execute([$termino, $termino]);
     $resultadosBusqueda = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
-?>
 
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo SITE_NAME; ?> - Tu guía definitiva de videojuegos</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="styles.css" rel="stylesheet">
-    <link href="advanced-animations.css" rel="stylesheet">
-</head>
+$pageTitle = 'Tu guía definitiva de videojuegos';
+$extraCss = ['advanced-animations.css'];
+include 'includes/head.php';
+?>
 <body>
     <!-- Banner Principal -->
     <header class="hero-banner">
@@ -71,60 +63,11 @@ if (isset($_GET['buscar']) && !empty($_GET['buscar'])) {
             </div>
         </div>
     </header>
-
-    <!-- Barra de Navegación -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
-        <div class="container">
-            <a class="navbar-brand fw-bold" href="index.php">
-                <i class="fas fa-gamepad me-2"></i><?php echo SITE_NAME; ?>
-            </a>
-            
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <!-- Buscador -->
-                <form class="d-flex me-auto ms-3" method="GET">
-                    <div class="input-group">
-                        <input class="form-control" type="search" name="buscar" placeholder="Buscar juegos..." 
-                               value="<?php echo isset($_GET['buscar']) ? htmlspecialchars($_GET['buscar']) : ''; ?>">
-                        <button class="btn btn-outline-light" type="submit">
-                            <i class="fas fa-search"></i>
-                        </button>
-                    </div>
-                </form>
-                
-                <!-- Menú de usuario -->
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" href="games.php"><i class="fas fa-list"></i> Juegos</a>
-                    </li>
-                    <?php if (isLoggedIn()): ?>
-                        <li class="nav-item">
-                            <a class="nav-link" href="favorites.php"><i class="fas fa-trophy"></i> Mis Favoritos</a>
-                        </li>
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                                <i class="fas fa-user"></i> <?php echo e($_SESSION['username']); ?>
-                            </a>
-                            <ul class="dropdown-menu">
-                                <?php if (isAdmin()): ?>
-                                    <li><a class="dropdown-item" href="admin.php"><i class="fas fa-cog"></i> Administrar</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                <?php endif; ?>
-                                <li><a class="dropdown-item" href="logout.php"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a></li>
-                            </ul>
-                        </li>
-                    <?php else: ?>
-                        <li class="nav-item">
-                            <a class="nav-link" href="login.php"><i class="fas fa-sign-in-alt"></i> Iniciar Sesión</a>
-                        </li>
-                    <?php endif; ?>
-                </ul>
-            </div>
-        </div>
-    </nav>
+<?php
+$activePage = 'home';
+$showSearch = true;
+include 'includes/navbar.php';
+?>
 
     <main class="container my-5">
         <!-- Resultados de búsqueda -->
@@ -307,7 +250,10 @@ if (isset($_GET['buscar']) && !empty($_GET['buscar'])) {
         </div>
     </footer>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <?php
+    $extraScripts = ['animations.js'];
+    ob_start();
+    ?>
     <script>
         // Contador regresivo
         function updateCountdown() {
@@ -396,8 +342,7 @@ if (isset($_GET['buscar']) && !empty($_GET['buscar'])) {
                     updateParallax();
                 })();
     </script>
-    
-    <!-- Animaciones y efectos avanzados -->
-    <script src="animations.js"></script>
-</body>
-</html>
+    <?php
+    $extraScriptsHtml = ob_get_clean();
+    include 'includes/footer.php';
+    ?>

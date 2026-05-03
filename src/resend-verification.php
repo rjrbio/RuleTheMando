@@ -102,66 +102,60 @@ function sendVerificationEmailLocal($email, $username, $token)
 
     return mail($email, $subject, $message, $headers);
 }
+
+$pageTitle = 'Reenviar Verificación';
+ob_start();
 ?>
+<style>
+    .resend-container {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
 
-<!DOCTYPE html>
-<html lang="es">
+    .resend-card {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+        padding: 3rem 2rem;
+        max-width: 500px;
+        width: 100%;
+    }
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reenviar Verificación - <?php echo SITE_NAME; ?></title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="styles.css" rel="stylesheet">
-    <style>
-        .resend-container {
-            min-height: 100vh;
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
+    .resend-icon {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        color: white;
+        font-size: 2rem;
+    }
 
-        .resend-card {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
-            padding: 3rem 2rem;
-            max-width: 500px;
-            width: 100%;
-        }
+    .btn-resend {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        border: none;
+        padding: 12px 0;
+        font-weight: 600;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+    }
 
-        .resend-icon {
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 1.5rem;
-            color: white;
-            font-size: 2rem;
-        }
-
-        .btn-resend {
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            border: none;
-            padding: 12px 0;
-            font-weight: 600;
-            border-radius: 10px;
-            transition: all 0.3s ease;
-        }
-
-        .btn-resend:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4);
-        }
-    </style>
-</head>
-
+    .btn-resend:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4);
+    }
+</style>
+<?php
+$extraHead = ob_get_clean();
+include 'includes/head.php';
+?>
 <body>
     <div class="resend-container">
         <div class="resend-card">
@@ -219,7 +213,9 @@ function sendVerificationEmailLocal($email, $username, $token)
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <?php
+    ob_start();
+    ?>
     <script>
         // Validación de formulario
         (function () {
@@ -238,6 +234,7 @@ function sendVerificationEmailLocal($email, $username, $token)
             }, false);
         })();
     </script>
-</body>
-
-</html>
+    <?php
+    $extraScriptsHtml = ob_get_clean();
+    include 'includes/footer.php';
+    ?>

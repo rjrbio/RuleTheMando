@@ -49,116 +49,110 @@ if (isset($_GET['token'])) {
 } else {
     $message = 'No se proporcionó token de verificación.';
 }
+
+$pageTitle = 'Verificación de Email';
+ob_start();
 ?>
+<style>
+    .verify-container {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
 
-<!DOCTYPE html>
-<html lang="es">
+    .verify-card {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+        padding: 3rem 2rem;
+        text-align: center;
+        max-width: 500px;
+        width: 100%;
+    }
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Verificación de Email - <?php echo SITE_NAME; ?></title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="styles.css" rel="stylesheet">
-    <style>
-        .verify-container {
-            min-height: 100vh;
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
+    .verify-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        font-size: 2rem;
+    }
+
+    .verify-icon.success {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+    }
+
+    .verify-icon.error {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+    }
+
+    .verify-title {
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+
+    .verify-message {
+        color: #6b7280;
+        font-size: 1.1rem;
+        line-height: 1.6;
+        margin-bottom: 2rem;
+    }
+
+    .btn-verify {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        border: none;
+        padding: 12px 30px;
+        font-weight: 600;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-verify:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4);
+    }
+
+    .animate-bounce {
+        animation: bounce 2s infinite;
+    }
+
+    @keyframes bounce {
+
+        0%,
+        20%,
+        53%,
+        80%,
+        100% {
+            transform: translate3d(0, 0, 0);
         }
 
-        .verify-card {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
-            padding: 3rem 2rem;
-            text-align: center;
-            max-width: 500px;
-            width: 100%;
+        40%,
+        43% {
+            transform: translate3d(0, -30px, 0);
         }
 
-        .verify-icon {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 1.5rem;
-            font-size: 2rem;
+        70% {
+            transform: translate3d(0, -15px, 0);
         }
 
-        .verify-icon.success {
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: white;
+        90% {
+            transform: translate3d(0, -4px, 0);
         }
-
-        .verify-icon.error {
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-            color: white;
-        }
-
-        .verify-title {
-            font-size: 1.8rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
-        }
-
-        .verify-message {
-            color: #6b7280;
-            font-size: 1.1rem;
-            line-height: 1.6;
-            margin-bottom: 2rem;
-        }
-
-        .btn-verify {
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            border: none;
-            padding: 12px 30px;
-            font-weight: 600;
-            border-radius: 10px;
-            transition: all 0.3s ease;
-        }
-
-        .btn-verify:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4);
-        }
-
-        .animate-bounce {
-            animation: bounce 2s infinite;
-        }
-
-        @keyframes bounce {
-
-            0%,
-            20%,
-            53%,
-            80%,
-            100% {
-                transform: translate3d(0, 0, 0);
-            }
-
-            40%,
-            43% {
-                transform: translate3d(0, -30px, 0);
-            }
-
-            70% {
-                transform: translate3d(0, -15px, 0);
-            }
-
-            90% {
-                transform: translate3d(0, -4px, 0);
-            }
-        }
-    </style>
-</head>
-
+    }
+</style>
+<?php
+$extraHead = ob_get_clean();
+include 'includes/head.php';
+?>
 <body>
     <div class="verify-container">
         <div class="verify-card">
@@ -198,8 +192,10 @@ if (isset($_GET['token'])) {
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
-    <?php if ($success): ?>
+    <?php
+    ob_start();
+    if ($success):
+    ?>
         <script>
             // Confetti animation para celebrar la verificación exitosa
             function createConfetti() {
@@ -239,4 +235,8 @@ if (isset($_GET['token'])) {
             // Crear confetti cuando la página carga
             setTimeout(createConfetti, 500);
         </script>
-    <?php endif; ?>
+    <?php
+    endif;
+    $extraScriptsHtml = ob_get_clean();
+    include 'includes/footer.php';
+    ?>

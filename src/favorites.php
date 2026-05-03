@@ -111,36 +111,23 @@ $selectSlug = $hasSlug ? ', v.slug' : '';
 $stmt = $pdo->prepare('SELECT f.game_id, f.posicion, v.titulo, v.imagen, v.genero, v.plataforma' . $selectSlug . ' FROM favoritos f JOIN videojuegos v ON v.id=f.game_id WHERE f.user_id=? ORDER BY f.posicion ASC');
 $stmt->execute([$uid]);
 $favs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$pageTitle = 'Mis Favoritos';
+$extraHead = <<<HTML
+<style>
+  .fav-item{cursor:grab}
+  .podium-1{border:2px solid #f59e0b; box-shadow:0 0 0 3px rgba(245,158,11,.2)}
+  .podium-2{border:2px solid #9ca3af; box-shadow:0 0 0 3px rgba(156,163,175,.2)}
+  .podium-3{border:2px solid #b45309; box-shadow:0 0 0 3px rgba(180,83,9,.2)}
+</style>
+HTML;
+include 'includes/head.php';
 ?>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mis Favoritos - <?php echo SITE_NAME; ?></title>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-  <link href="styles.css" rel="stylesheet">
-  <style>
-    .fav-item{cursor:grab}
-    .podium-1{border:2px solid #f59e0b; box-shadow:0 0 0 3px rgba(245,158,11,.2)}
-    .podium-2{border:2px solid #9ca3af; box-shadow:0 0 0 3px rgba(156,163,175,.2)}
-    .podium-3{border:2px solid #b45309; box-shadow:0 0 0 3px rgba(180,83,9,.2)}
-  </style>
-</head>
 <body class="bg-light">
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-  <div class="container">
-    <a class="navbar-brand fw-bold" href="index.php"><i class="fas fa-gamepad me-2"></i><?php echo SITE_NAME; ?></a>
-    <div class="collapse navbar-collapse">
-      <ul class="navbar-nav ms-auto">
-        <li class="nav-item"><a class="nav-link" href="games.php">Juegos</a></li>
-        <li class="nav-item"><a class="nav-link active" href="favorites.php">Mis Favoritos</a></li>
-        <li class="nav-item"><a class="nav-link" href="logout.php">Salir</a></li>
-      </ul>
-    </div>
-  </div>
-</nav>
+<?php
+$activePage = 'favorites';
+include 'includes/navbar.php';
+?>
 
 <main class="container my-4">
   <div class="d-flex justify-content-between align-items-center mb-3">
@@ -207,8 +194,4 @@ $favs = $stmt->fetchAll(PDO::FETCH_ASSOC);
   <?php endif; ?>
 </main>
 
-<script>
-// Nada que hacer: el reorden se hace con inputs de número
-</script>
-</body>
-</html>
+<?php include 'includes/footer.php'; ?>

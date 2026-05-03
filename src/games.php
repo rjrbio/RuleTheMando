@@ -92,61 +92,25 @@ $juegos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 // Cargar listas para filtros
 $plataformas = $pdo->query("SELECT DISTINCT plataforma FROM videojuegos WHERE plataforma IS NOT NULL AND plataforma <> '' ORDER BY plataforma ASC")->fetchAll(PDO::FETCH_COLUMN);
 $generos = $pdo->query("SELECT DISTINCT genero FROM videojuegos WHERE genero IS NOT NULL AND genero <> '' ORDER BY genero ASC")->fetchAll(PDO::FETCH_COLUMN);
+
+$pageTitle = 'Todos los juegos';
+$extraHead = <<<HTML
+<style>
+  .game-section { background: #fff; border-radius: 16px; box-shadow: 0 6px 18px rgba(0,0,0,0.08); overflow: hidden; margin-bottom: 24px; }
+  .game-cover { width: 100%; height: 100%; object-fit: cover; }
+  .game-cover-wrap { min-height: 260px; background: #0f172a; display: flex; align-items: center; justify-content: center; }
+  .badge-upcoming { background: linear-gradient(135deg, #f59e0b, #d97706); }
+  .badge-available { background: linear-gradient(135deg, #10b981, #059669); }
+  .filters-card { border-radius: 16px; }
+</style>
+HTML;
+include 'includes/head.php';
 ?>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Todos los juegos - <?php echo SITE_NAME; ?></title>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-  <link href="styles.css" rel="stylesheet">
-  <style>
-    .game-section { background: #fff; border-radius: 16px; box-shadow: 0 6px 18px rgba(0,0,0,0.08); overflow: hidden; margin-bottom: 24px; }
-    .game-cover { width: 100%; height: 100%; object-fit: cover; }
-    .game-cover-wrap { min-height: 260px; background: #0f172a; display: flex; align-items: center; justify-content: center; }
-    .badge-upcoming { background: linear-gradient(135deg, #f59e0b, #d97706); }
-    .badge-available { background: linear-gradient(135deg, #10b981, #059669); }
-    .filters-card { border-radius: 16px; }
-  </style>
-</head>
 <body class="bg-light">
-  <!-- Navbar -->
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
-    <div class="container">
-      <a class="navbar-brand fw-bold" href="index.php">
-        <i class="fas fa-gamepad me-2"></i><?php echo SITE_NAME; ?>
-      </a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav me-auto">
-          <li class="nav-item"><a class="nav-link active" href="games.php"><i class="fas fa-list"></i> Juegos</a></li>
-        </ul>
-        <ul class="navbar-nav">
-          <?php if (isLoggedIn()): ?>
-            <li class="nav-item"><a class="nav-link" href="favorites.php"><i class="fas fa-trophy"></i> Mis Favoritos</a></li>
-            <li class="nav-item dropdown">
-              <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                <i class="fas fa-user"></i> <?php echo e($_SESSION['username']); ?>
-              </a>
-              <ul class="dropdown-menu">
-                <?php if (isAdmin()): ?>
-                  <li><a class="dropdown-item" href="admin.php"><i class="fas fa-cog"></i> Administrar</a></li>
-                  <li><hr class="dropdown-divider"></li>
-                <?php endif; ?>
-                <li><a class="dropdown-item" href="logout.php"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a></li>
-              </ul>
-            </li>
-          <?php else: ?>
-            <li class="nav-item"><a class="nav-link" href="login.php"><i class="fas fa-sign-in-alt"></i> Iniciar Sesión</a></li>
-          <?php endif; ?>
-        </ul>
-      </div>
-    </div>
-  </nav>
+<?php
+$activePage = 'games';
+include 'includes/navbar.php';
+?>
 
   <main class="container my-4">
     <div class="row g-4">
@@ -323,7 +287,9 @@ $generos = $pdo->query("SELECT DISTINCT genero FROM videojuegos WHERE genero IS 
     </div>
   </footer>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+  <?php
+  ob_start();
+  ?>
   <script>
     // Búsqueda de usuarios
     const searchUsers = document.getElementById('searchUsers');
@@ -336,5 +302,7 @@ $generos = $pdo->query("SELECT DISTINCT genero FROM videojuegos WHERE genero IS 
       });
     }
   </script>
-</body>
-</html>
+  <?php
+  $extraScriptsHtml = ob_get_clean();
+  include 'includes/footer.php';
+  ?>

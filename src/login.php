@@ -209,100 +209,94 @@ function sendVerificationEmailLocal($email, $username, $token)
 
     return mail($email, $subject, $message, $headers);
 }
+
+$pageTitle = 'Login';
+ob_start();
 ?>
+<style>
+    .auth-container {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px 0;
+    }
 
-<!DOCTYPE html>
-<html lang="es">
+    .auth-card {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        overflow: hidden;
+        width: 100%;
+        max-width: 800px;
+    }
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - <?php echo SITE_NAME; ?></title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="styles.css" rel="stylesheet">
-    <style>
-        .auth-container {
-            min-height: 100vh;
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px 0;
-        }
+    .auth-header {
+        background: linear-gradient(135deg, #1f2937, #374151);
+        color: white;
+        padding: 2rem;
+        text-align: center;
+    }
 
-        .auth-card {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-            overflow: hidden;
-            width: 100%;
-            max-width: 800px;
-        }
+    .auth-body {
+        padding: 2rem;
+    }
 
-        .auth-header {
-            background: linear-gradient(135deg, #1f2937, #374151);
-            color: white;
-            padding: 2rem;
-            text-align: center;
-        }
+    .nav-tabs .nav-link {
+        border: none;
+        color: #6b7280;
+        font-weight: 500;
+    }
 
-        .auth-body {
-            padding: 2rem;
-        }
+    .nav-tabs .nav-link.active {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        color: white;
+        border-radius: 10px;
+    }
 
-        .nav-tabs .nav-link {
-            border: none;
-            color: #6b7280;
-            font-weight: 500;
-        }
+    .form-floating label {
+        color: #6b7280;
+    }
 
-        .nav-tabs .nav-link.active {
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            color: white;
-            border-radius: 10px;
-        }
+    .btn-auth {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        border: none;
+        padding: 12px 0;
+        font-weight: 600;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+    }
 
-        .form-floating label {
-            color: #6b7280;
-        }
+    .btn-auth:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4);
+    }
 
-        .btn-auth {
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            border: none;
-            padding: 12px 0;
-            font-weight: 600;
-            border-radius: 10px;
-            transition: all 0.3s ease;
-        }
+    .alert {
+        border-radius: 10px;
+        border: none;
+    }
 
-        .btn-auth:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4);
-        }
+    .back-home {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        color: white;
+        text-decoration: none;
+        font-size: 1.2rem;
+        transition: all 0.3s ease;
+    }
 
-        .alert {
-            border-radius: 10px;
-            border: none;
-        }
-
-        .back-home {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            color: white;
-            text-decoration: none;
-            font-size: 1.2rem;
-            transition: all 0.3s ease;
-        }
-
-        .back-home:hover {
-            color: #f59e0b;
-            transform: translateX(-5px);
-        }
-    </style>
-</head>
-
+    .back-home:hover {
+        color: #f59e0b;
+        transform: translateX(-5px);
+    }
+</style>
+<?php
+$extraHead = ob_get_clean();
+include 'includes/head.php';
+?>
 <body>
     <div class="auth-container">
         <a href="index.php" class="back-home">
@@ -457,7 +451,9 @@ function sendVerificationEmailLocal($email, $username, $token)
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <?php
+    ob_start();
+    ?>
     <script>
         // Validación de formulario
         (function () {
@@ -502,6 +498,7 @@ function sendVerificationEmailLocal($email, $username, $token)
             }
         }
     </script>
-</body>
-
-</html>
+    <?php
+    $extraScriptsHtml = ob_get_clean();
+    include 'includes/footer.php';
+    ?>
